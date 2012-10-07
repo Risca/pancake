@@ -10,10 +10,10 @@ CFLAGS		:=	-I$(INCLUDEDIR)
 LDFLAGS		:=
 
 # Define include files
-INCLUDES	:=	$(INCLUDEDIR)/foo.h
+INCLUDES	:=	$(INCLUDEDIR)/pancake.h
 
 # Add some sources
-SOURCES		:=	$(COMMONDIR)/foo.c
+SOURCES		:=	$(COMMONDIR)/pancake.c
 SOURCES		+=	$(PORTSDIR)/rpi.c
 SOURCES		+=	main.c
 
