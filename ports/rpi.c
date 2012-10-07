@@ -2,20 +2,27 @@
 #include <stdint.h>
 #include <stdio.h>
 
-static uint8_t rpi_read_func(void);
-static uint8_t rpi_write_func(void *dev_data, uint8_t *data, uint16_t *length);
+static FOOSTATUS rpi_init_func(void *dev_data);
+static FOOSTATUS rpi_read_func(void);
+static FOOSTATUS rpi_write_func(void *dev_data, uint8_t *data, uint16_t *length);
 
-struct foo_main_cfg rpi_cfg = {
+struct foo_dev_cfg rpi_cfg = {
+	.init_func = rpi_init_func,
     .read_func = rpi_read_func,
     .write_func = rpi_write_func,
 };
 
-static uint8_t rpi_read_func(void)
+static FOOSTATUS rpi_init_func(void *dev_data)
 {
-	return -1;
+	return FOOSTATUS_OK;
 }
 
-static uint8_t rpi_write_func(void *dev_data, uint8_t *data, uint16_t *length)
+static FOOSTATUS rpi_read_func(void)
+{
+	return FOOSTATUS_ERR;
+}
+
+static FOOSTATUS rpi_write_func(void *dev_data, uint8_t *data, uint16_t *length)
 {
 	size_t ret;
 	FILE *out = (FILE*)dev_data;
@@ -26,7 +33,7 @@ static uint8_t rpi_write_func(void *dev_data, uint8_t *data, uint16_t *length)
 	}
 	*length = ret;
 
-	return 0;
+	return FOOSTATUS_OK;
 err_out:
-	return -1;
+	return FOOSTATUS_ERR;
 }

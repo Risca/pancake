@@ -1,14 +1,35 @@
+#ifndef FOO_H
+#define FOO_H
 #include <stdint.h>
+#include <config.h>
 
-#define FOO_MAX_DEVICES 1
+typedef uint8_t FOOHANDLE;
+typedef enum {
+	FOOSTATUS_OK,
+	FOOSTATUS_ERR,
+} FOOSTATUS;
 
-typedef
-uint8_t FOOHANDLE;
+/* Placed here to avoid circular include */
+#include <port.h>
 
-struct foo_main_cfg {
-    uint8_t (*read_func)(void);
-    uint8_t (*write_func)(void *dev_data, uint8_t *data, uint16_t *length);
+enum foo_header_compression {
+	FOO_COMPRESSION_NONE,
+	FOO_COMPRESSION_HC1,
+	FOO_COMPRESSION_HCIP,
 };
 
-uint8_t foo_init(FOOHANDLE *handle, struct foo_main_cfg *cfg, void *dev_data);
-uint8_t foo_write_test(FOOHANDLE handle);
+enum foo_security {
+	FOO_SECURITY_NONE,
+	FOO_SECURITY_AESCCM128,
+	FOO_SECURITY_AESCCM64,
+	FOO_SECURITY_AESCCM32,
+};
+
+struct foo_opts_cfg {
+	enum foo_header_compression compression;
+	enum foo_security security;
+};
+
+FOOSTATUS foo_init(FOOHANDLE *handle, struct foo_opts_cfg *opts_cfg, struct foo_dev_cfg *dev_cfg, void *dev_data);
+FOOSTATUS foo_write_test(FOOHANDLE handle);
+#endif
