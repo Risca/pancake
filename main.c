@@ -2,13 +2,13 @@
 #include <stdlib.h>
 #include <pancake.h>
 
-extern struct pancake_dev_cfg rpi_cfg;
-struct pancake_opts_cfg my_rpi_opts = {
+extern struct pancake_dev_cfg linux_cfg;
+struct pancake_opts_cfg my_linux_opts = {
 	.compression = PANC_COMPRESSION_NONE,
 	.security = PANC_SECURITY_NONE,
 };
 PANCHANDLE my_pancake_handle;
-struct pancake_opts_cfg my_rpi_opts_two = {
+struct pancake_opts_cfg my_linux_opts_two = {
 	.compression = PANC_COMPRESSION_NONE,
 	.security = PANC_SECURITY_NONE,
 };
@@ -18,11 +18,11 @@ int main(int argc, int **argv)
 {
 	PANCSTATUS ret;
 
-	ret = pancake_init(&my_pancake_handle, &my_rpi_opts, &rpi_cfg, stdout);
+	ret = pancake_init(&my_pancake_handle, &my_linux_opts, &linux_cfg, stdout);
 	if (ret != PANCSTATUS_OK) {
 		printf("pancake failed to initialize!\n");
 	}
-	ret = pancake_init(&my_pancake_handle_two, &my_rpi_opts_two, &rpi_cfg, stderr);
+	ret = pancake_init(&my_pancake_handle_two, &my_linux_opts_two, &linux_cfg, stderr);
 	if (ret != PANCSTATUS_OK) {
 		printf("pancake failed to initialize!\n");
 	}
