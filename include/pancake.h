@@ -25,11 +25,11 @@ enum pancake_security {
 	PANC_SECURITY_AESCCM32,
 };
 
-struct pancake_opts_cfg {
+struct pancake_options_cfg {
 	enum pancake_header_compression compression;
 	enum pancake_security security;
 };
 
-PANCSTATUS pancake_init(PANCHANDLE *handle, struct pancake_opts_cfg *opts_cfg, struct pancake_dev_cfg *dev_cfg, void *dev_data);
+PANCSTATUS pancake_init(PANCHANDLE *handle, struct pancake_options_cfg *options_cfg, struct pancake_dev_cfg *dev_cfg, void *dev_data);
 PANCSTATUS pancake_write_test(PANCHANDLE handle);
 #endif

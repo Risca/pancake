@@ -36,6 +36,7 @@ $(info Building for $(TARGET))
 endif
 
 all:
+	$(error You have to specify a target! Available targets: $(TARGETS))
 
 $(TARGET): $(OBJECTS)
 	$(LD) $(LDFLAGS) -o $(BUILDDIR)/$@ $^

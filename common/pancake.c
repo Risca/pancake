@@ -4,19 +4,19 @@
 
 struct pancake_main_dev {
 	struct pancake_dev_cfg		*cfg;
-	struct pancake_opts_cfg		*opts;
+	struct pancake_options_cfg	*options;
 	void 					*dev_data;
 };
 static struct pancake_main_dev devs[PANC_MAX_DEVICES];
 
-PANCSTATUS pancake_init(PANCHANDLE *handle, struct pancake_opts_cfg *opts_cfg, struct pancake_dev_cfg *dev_cfg, void *dev_data)
+PANCSTATUS pancake_init(PANCHANDLE *handle, struct pancake_options_cfg *options_cfg, struct pancake_dev_cfg *dev_cfg, void *dev_data)
 {
 	int8_t ret;
 	static uint8_t handle_count = 0;
 	struct pancake_main_dev *dev = &devs[handle_count];
 
 	/* Sanity check */
-	if (handle == NULL || opts_cfg == NULL || dev_cfg == NULL || handle_count+1 > PANC_MAX_DEVICES) {
+	if (handle == NULL || options_cfg == NULL || dev_cfg == NULL || handle_count+1 > PANC_MAX_DEVICES) {
 		goto err_out;
 	}
 	if (dev_cfg->read_func == NULL || dev_cfg->write_func == NULL) {
@@ -33,7 +33,7 @@ PANCSTATUS pancake_init(PANCHANDLE *handle, struct pancake_opts_cfg *opts_cfg, s
 
 	/* Save config and device data, and update handle */
 	dev->cfg = dev_cfg;
-	dev->opts = opts_cfg;
+	dev->options = options_cfg;
 	dev->dev_data = dev_data;
 	*handle = handle_count;
 	handle_count++;

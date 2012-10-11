@@ -3,12 +3,12 @@
 #include <pancake.h>
 
 extern struct pancake_dev_cfg linux_cfg;
-struct pancake_opts_cfg my_linux_opts = {
+struct pancake_options_cfg my_linux_options = {
 	.compression = PANC_COMPRESSION_NONE,
 	.security = PANC_SECURITY_NONE,
 };
 PANCHANDLE my_pancake_handle;
-struct pancake_opts_cfg my_linux_opts_two = {
+struct pancake_options_cfg my_linux_options_two = {
 	.compression = PANC_COMPRESSION_NONE,
 	.security = PANC_SECURITY_NONE,
 };
@@ -18,11 +18,11 @@ int main(int argc, int **argv)
 {
 	PANCSTATUS ret;
 
-	ret = pancake_init(&my_pancake_handle, &my_linux_opts, &linux_cfg, stdout);
+	ret = pancake_init(&my_pancake_handle, &my_linux_options, &linux_cfg, stdout);
 	if (ret != PANCSTATUS_OK) {
 		printf("pancake failed to initialize!\n");
 	}
-	ret = pancake_init(&my_pancake_handle_two, &my_linux_opts_two, &linux_cfg, stderr);
+	ret = pancake_init(&my_pancake_handle_two, &my_linux_options_two, &linux_cfg, stderr);
 	if (ret != PANCSTATUS_OK) {
 		printf("pancake failed to initialize!\n");
 	}
