@@ -1,31 +1,47 @@
-CC			?=	gcc
+CC			:=	gcc
+LD			:=	gcc
+RM			:=	rm -rf
 TOPDIR		:=	$(shell pwd)
 INCLUDEDIR	:=	$(TOPDIR)/include
 COMMONDIR	:=	$(TOPDIR)/common
 PORTSDIR	:=	$(TOPDIR)/ports
 BUILDDIR	:=	$(TOPDIR)/build
 TARGETS		:=	rpi linux
+TARGET		:=	$(filter $(MAKECMDGOALS),$(TARGETS))
+VPATH		:=	$(COMMONDIR) $(PORTSDIR)
 
 CFLAGS		:=	-I$(INCLUDEDIR)
 LDFLAGS		:=
 
 # Define include files
-INCLUDES	:=	$(INCLUDEDIR)/foo.h
+INCLUDES	:=	$(INCLUDEDIR)/pancake.h
 
 # Add some sources
-SOURCES		:=	$(COMMONDIR)/foo.c
-SOURCES		+=	$(PORTSDIR)/rpi.c
-SOURCES		+=	main.c
+SOURCES		:=	$(COMMONDIR)/pancake.c
+SOURCES		+=	$(PORTSDIR)/$(TARGET).c
+SOURCES		+=	$(TOPDIR)/main.c
 
-OBJECTS		:=	$(SOURCES:.c=.o)
+# A bit messy
+OBJECTS		:=	$(patsubst %.c,%.o,$(addprefix $(BUILDDIR)/, $(notdir $(SOURCES))))
+
+# For quiet builds
+ifndef V
+$(foreach VAR,CC CXX LD AR RANLIB RC,\
+    $(eval override $(VAR) = @printf " %s\t%s\n" $(VAR) "$$(notdir $$@)"; $($(VAR))))
+endif
+
+# Ok, let's go!
+ifneq ($(TARGET),)
+$(info Building for $(TARGET))
+endif
 
 all:
 
-$(TARGETS): $(OBJECTS)
-	$(CC) $(LDFLAGS) -o $@ $^
+$(TARGET): $(OBJECTS)
+	$(LD) $(LDFLAGS) -o $(BUILDDIR)/$@ $^
 
-#$(OBJECTS): $(SOURCES)
-#	$(CC) $(CFLAGS) -c -o $@ $<
+$(BUILDDIR)/%.o: %.c
+	$(CC) $(CFLAGS) -c -o $@ $<
 
 clean:
-	rm -rf $(OBJECTS) $(TARGETS)
+	$(RM) $(OBJECTS) $(TARGETS)

@@ -1,22 +1,22 @@
-#include <foo.h>
+#include <pancake.h>
 #include <stddef.h>
 #include <string.h>
 
-struct foo_main_dev {
-	struct foo_dev_cfg		*cfg;
-	struct foo_opts_cfg		*opts;
+struct pancake_main_dev {
+	struct pancake_dev_cfg		*cfg;
+	struct pancake_opts_cfg		*opts;
 	void 					*dev_data;
 };
-static struct foo_main_dev devs[FOO_MAX_DEVICES];
+static struct pancake_main_dev devs[PANC_MAX_DEVICES];
 
-FOOSTATUS foo_init(FOOHANDLE *handle, struct foo_opts_cfg *opts_cfg, struct foo_dev_cfg *dev_cfg, void *dev_data)
+PANCSTATUS pancake_init(PANCHANDLE *handle, struct pancake_opts_cfg *opts_cfg, struct pancake_dev_cfg *dev_cfg, void *dev_data)
 {
 	int8_t ret;
 	static uint8_t handle_count = 0;
-	struct foo_main_dev *dev = &devs[handle_count];
+	struct pancake_main_dev *dev = &devs[handle_count];
 
 	/* Sanity check */
-	if (handle == NULL || opts_cfg == NULL || dev_cfg == NULL || handle_count+1 > FOO_MAX_DEVICES) {
+	if (handle == NULL || opts_cfg == NULL || dev_cfg == NULL || handle_count+1 > PANC_MAX_DEVICES) {
 		goto err_out;
 	}
 	if (dev_cfg->read_func == NULL || dev_cfg->write_func == NULL) {
@@ -38,24 +38,24 @@ FOOSTATUS foo_init(FOOHANDLE *handle, struct foo_opts_cfg *opts_cfg, struct foo_
 	*handle = handle_count;
 	handle_count++;
 
-	return FOOSTATUS_OK;
+	return PANCSTATUS_OK;
 err_out:
-	return FOOSTATUS_ERR;
+	return PANCSTATUS_ERR;
 }
 
-FOOSTATUS foo_write_test(FOOHANDLE handle)
+PANCSTATUS pancake_write_test(PANCHANDLE handle)
 {
 	uint8_t 			ret;
-	struct foo_main_dev	*dev	= &devs[handle];
+	struct pancake_main_dev	*dev	= &devs[handle];
 	char 				*str 	= "Hello world!\n";
 	uint16_t 			length	= strlen(str);
 
 	ret = dev->cfg->write_func(dev->dev_data, str, &length);
-	if (ret != FOOSTATUS_OK || length != strlen(str)) {
+	if (ret != PANCSTATUS_OK || length != strlen(str)) {
 		goto err_out;
 	}
 
-	return FOOSTATUS_OK;
+	return PANCSTATUS_OK;
 err_out:
-	return FOOSTATUS_ERR;
+	return PANCSTATUS_ERR;
 }
