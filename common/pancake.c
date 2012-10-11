@@ -1,6 +1,7 @@
 #include <pancake.h>
 #include <stddef.h>
 #include <string.h>
+#include <netinet/ip6.h>
 
 struct pancake_main_dev {
 	struct pancake_dev_cfg		*cfg;
@@ -45,13 +46,28 @@ err_out:
 
 PANCSTATUS pancake_write_test(PANCHANDLE handle)
 {
-	uint8_t 			ret;
-	struct pancake_main_dev	*dev	= &devs[handle];
-	char 				*str 	= "Hello world!\n";
-	uint16_t 			length	= strlen(str);
+	uint8_t ret;
+	struct pancake_main_dev	*dev = &devs[handle];
+	struct ip6_hdr hdr = {
+		.ip6_flow	=	htonl(6 << 28),
+		.ip6_plen	=	htons(255),
+		.ip6_nxt	=	254,
+		.ip6_hops	=	2,
+		.ip6_src	=	{
+			/* Loopback (::1/128) */
+			0, 0, 0, 0, 0, 0, 0, 0,
+			0, 0, 0, 0, 0, 0, 0, 1,
+		},
+		.ip6_dst	=	{
+			/* Loopback (::1/128) */
+			0, 0, 0, 0, 0, 0, 0, 0,
+			0, 0, 0, 0, 0, 0, 0, 1,
+		},
+	};
+	uint16_t length	= sizeof(hdr);
 
-	ret = dev->cfg->write_func(dev->dev_data, str, &length);
-	if (ret != PANCSTATUS_OK || length != strlen(str)) {
+	ret = dev->cfg->write_func(dev->dev_data, (uint8_t*)&hdr, &length);
+	if (ret != PANCSTATUS_OK || length != sizeof(hdr)) {
 		goto err_out;
 	}
 
