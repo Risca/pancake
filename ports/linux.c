@@ -3,12 +3,11 @@
 #include <stdio.h>
 
 static PANCSTATUS linux_init_func(void *dev_data);
-static PANCSTATUS linux_read_func(void);
 static PANCSTATUS linux_write_func(void *dev_data, uint8_t *data, uint16_t *length);
+static void linux_read_func(uint8_t *data, int16_t length);
 
 struct pancake_dev_cfg linux_cfg = {
 	.init_func = linux_init_func,
-    .read_func = linux_read_func,
     .write_func = linux_write_func,
 };
 
@@ -17,9 +16,9 @@ static PANCSTATUS linux_init_func(void *dev_data)
 	return PANCSTATUS_OK;
 }
 
-static PANCSTATUS linux_read_func(void)
+static void linux_read_func(uint8_t *data, int16_t length)
 {
-	return PANCSTATUS_ERR;
+	pancake_process_data(linux_cfg.handle, data, length);
 }
 
 static PANCSTATUS linux_write_func(void *dev_data, uint8_t *data, uint16_t *length)

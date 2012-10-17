@@ -20,7 +20,7 @@ PANCSTATUS pancake_init(PANCHANDLE *handle, struct pancake_options_cfg *options_
 	if (handle == NULL || options_cfg == NULL || dev_cfg == NULL || handle_count+1 > PANC_MAX_DEVICES) {
 		goto err_out;
 	}
-	if (dev_cfg->read_func == NULL || dev_cfg->write_func == NULL) {
+	if (dev_cfg->write_func == NULL) {
 		goto err_out;
 	}
 
@@ -36,6 +36,7 @@ PANCSTATUS pancake_init(PANCHANDLE *handle, struct pancake_options_cfg *options_
 	dev->cfg = dev_cfg;
 	dev->options = options_cfg;
 	dev->dev_data = dev_data;
+	dev_cfg->handle = handle_count;
 	*handle = handle_count;
 	handle_count++;
 
@@ -73,5 +74,10 @@ PANCSTATUS pancake_write_test(PANCHANDLE handle)
 
 	return PANCSTATUS_OK;
 err_out:
+	return PANCSTATUS_ERR;
+}
+
+PANCSTATUS pancake_process_data(PANCHANDLE handle, uint8_t *data, uint16_t size)
+{
 	return PANCSTATUS_ERR;
 }

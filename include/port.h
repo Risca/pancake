@@ -5,7 +5,8 @@
 
 struct pancake_dev_cfg {
 	PANCSTATUS (*init_func)(void *dev_data);
-    PANCSTATUS (*read_func)(void);
     PANCSTATUS (*write_func)(void *dev_data, uint8_t *data, uint16_t *length);
+	/* Defined by init, don't touch! */
+	PANCHANDLE handle;
 };
 #endif

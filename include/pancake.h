@@ -32,4 +32,6 @@ struct pancake_options_cfg {
 
 PANCSTATUS pancake_init(PANCHANDLE *handle, struct pancake_options_cfg *options_cfg, struct pancake_dev_cfg *dev_cfg, void *dev_data);
 PANCSTATUS pancake_write_test(PANCHANDLE handle);
+
+PANCSTATUS pancake_process_data(PANCHANDLE handle, uint8_t *data, uint16_t size);
 #endif
