@@ -33,6 +33,12 @@ struct pancake_options_cfg {
 	enum pancake_security security;
 };
 
+struct pancake_frag_hdr {
+	uint16_t size;
+	uint16_t tag;
+	uint8_t offset;
+};
+
 typedef void (*read_callback_func)(struct ip6_hdr *hdr, uint8_t *payload, uint16_t payload_length);
 
 PANCSTATUS pancake_init(PANCHANDLE *handle, struct pancake_options_cfg *options_cfg, struct pancake_port_cfg *port_cfg, void *dev_data, read_callback_func read_callback);
