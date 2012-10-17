@@ -1,16 +1,16 @@
 #include <pancake.h>
 #include <stddef.h>
 #include <string.h>
-#include <netinet/ip6.h>
 
 struct pancake_main_dev {
 	struct pancake_dev_cfg		*cfg;
 	struct pancake_options_cfg	*options;
-	void 					*dev_data;
+	void						*dev_data;
+	read_callback_func			read_callback;
 };
 static struct pancake_main_dev devs[PANC_MAX_DEVICES];
 
-PANCSTATUS pancake_init(PANCHANDLE *handle, struct pancake_options_cfg *options_cfg, struct pancake_dev_cfg *dev_cfg, void *dev_data)
+PANCSTATUS pancake_init(PANCHANDLE *handle, struct pancake_options_cfg *options_cfg, struct pancake_dev_cfg *dev_cfg, void *dev_data, read_callback_func read_callback)
 {
 	int8_t ret;
 	static uint8_t handle_count = 0;
@@ -36,7 +36,7 @@ PANCSTATUS pancake_init(PANCHANDLE *handle, struct pancake_options_cfg *options_
 	dev->cfg = dev_cfg;
 	dev->options = options_cfg;
 	dev->dev_data = dev_data;
-	dev_cfg->handle = handle_count;
+	dev->read_callback = read_callback;
 	*handle = handle_count;
 	handle_count++;
 
@@ -72,12 +72,46 @@ PANCSTATUS pancake_write_test(PANCHANDLE handle)
 		goto err_out;
 	}
 
+	dev->read_callback(NULL, "Write test successful!", 0);
+
 	return PANCSTATUS_OK;
 err_out:
 	return PANCSTATUS_ERR;
 }
 
-PANCSTATUS pancake_process_data(PANCHANDLE handle, uint8_t *data, uint16_t size)
+
+PANCSTATUS pancake_send(PANCHANDLE handle, struct ip6_hdr *hdr, uint8_t *payload, uint16_t payload_length)
 {
+	return PANCSTATUS_ERR;
+}
+
+PANCSTATUS pancake_send_packet(PANCHANDLE handle, uint8_t *ip6_packet, uint16_t packet_length)
+{
+	return pancake_send(handle, (struct ip6_hdr *)ip6_packet, ip6_packet+40, packet_length-40);
+}
+
+static PANCHANDLE pancake_handle_from_dev_data(void *dev_data)
+{
+	int i;
+	struct pancake_main_dev *dev;
+	for (i=0; i<PANC_MAX_DEVICES; i++) {
+		dev = &devs[i];
+		if (dev->dev_data == dev_data) {
+			return i;
+		}
+	}
+	return -1;
+}
+
+PANCSTATUS pancake_process_data(void *dev_data, uint8_t *data, uint16_t size)
+{
+	PANCHANDLE handle = pancake_handle_from_dev_data(dev_data);
+
+	/* way to get a handle */
+	if (handle < 0) {
+		goto err_out;
+	}
+
+err_out:
 	return PANCSTATUS_ERR;
 }

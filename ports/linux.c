@@ -18,7 +18,7 @@ static PANCSTATUS linux_init_func(void *dev_data)
 
 static void linux_read_func(uint8_t *data, int16_t length)
 {
-	pancake_process_data(linux_cfg.handle, data, length);
+	pancake_process_data(stdout, data, length);
 }
 
 static PANCSTATUS linux_write_func(void *dev_data, uint8_t *data, uint16_t *length)
