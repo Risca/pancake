@@ -22,6 +22,12 @@ SOURCES		+=	$(COMMONDIR)/in6_addr.c
 SOURCES		+=	$(PORTSDIR)/$(TARGET).c
 SOURCES		+=	$(TOPDIR)/main.c
 
+# Include target specific stuff
+ifneq ($(TARGET),)
+$(info Building for $(TARGET))
+include Makefile.$(TARGET)
+endif
+
 # A bit messy
 OBJECTS		:=	$(patsubst %.c,%.o,$(addprefix $(BUILDDIR)/, $(notdir $(SOURCES))))
 
@@ -32,10 +38,6 @@ $(foreach VAR,CC CXX LD AR RANLIB RC,\
 endif
 
 # Ok, let's go!
-ifneq ($(TARGET),)
-$(info Building for $(TARGET))
-endif
-
 all:
 	$(error You have to specify a target! Available targets: $(TARGETS))
 

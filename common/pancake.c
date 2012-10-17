@@ -67,7 +67,7 @@ PANCSTATUS pancake_write_test(PANCHANDLE handle)
 	};
 	uint16_t length	= sizeof(hdr);
 
-	ret = dev->cfg->write_func(dev->dev_data, (uint8_t*)&hdr, &length);
+	ret = dev->cfg->write_func(dev->dev_data, (uint8_t*)&hdr, length);
 	if (ret != PANCSTATUS_OK || length != sizeof(hdr)) {
 		goto err_out;
 	}
@@ -79,9 +79,45 @@ err_out:
 	return PANCSTATUS_ERR;
 }
 
+void pancake_destroy(PANCHANDLE handle)
+{
+	struct pancake_main_dev *dev = &devs[handle];
+	PANCSTATUS ret;
+
+	ret = dev->cfg->destroy_func(dev->dev_data);
+	if (ret != PANCSTATUS_OK) {
+		/* What to do, what to do? */
+	}
+}
 
 PANCSTATUS pancake_send(PANCHANDLE handle, struct ip6_hdr *hdr, uint8_t *payload, uint16_t payload_length)
 {
+	uint8_t data[127];
+	uint16_t length;
+	struct pancake_main_dev *dev;
+	PANCSTATUS ret;
+
+	/* Sanity check */
+	if ( 	handle < 0 ||
+			handle > PANC_MAX_DEVICES || 
+			hdr == NULL ||
+			(payload == NULL && payload_length != 0) ) {
+		goto err_out;
+	}
+	dev = &devs[handle];
+	
+	/* Below this point we assume a lot! */
+	memcpy(data, hdr, 40);
+	memcpy(data+40, payload, payload_length);
+	length = 40 + payload_length;
+
+	ret = dev->cfg->write_func(dev->dev_data, data, length);
+	if (ret != PANCSTATUS_OK) {
+		goto err_out;
+	}
+
+	return PANCSTATUS_OK;
+err_out:
 	return PANCSTATUS_ERR;
 }
 
@@ -103,15 +139,33 @@ static PANCHANDLE pancake_handle_from_dev_data(void *dev_data)
 	return -1;
 }
 
+#include <stdio.h>
 PANCSTATUS pancake_process_data(void *dev_data, uint8_t *data, uint16_t size)
 {
-	PANCHANDLE handle = pancake_handle_from_dev_data(dev_data);
+	struct ip6_hdr *hdr;
+	uint8_t *payload;
+	uint16_t payload_length;
+	PANCSTATUS ret;
+	PANCHANDLE handle;
+	struct pancake_main_dev *dev;
 
-	/* way to get a handle */
+	/* Try to get handle */
+	handle = pancake_handle_from_dev_data(dev_data);
 	if (handle < 0) {
 		goto err_out;
 	}
+	dev = &devs[handle];
 
+	/* From this point on, we assume a lot! */
+	hdr = (struct ip6_hdr *)data;
+	payload = data+40;
+	payload_length = size-40;
+
+	/* Relay data to upper levels */
+	dev->read_callback(hdr, payload, payload_length);
+
+	return PANCSTATUS_OK;
 err_out:
 	return PANCSTATUS_ERR;
 }
+

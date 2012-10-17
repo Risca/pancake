@@ -12,7 +12,13 @@ PANCHANDLE my_pancake_handle;
 
 void my_read_callback(struct ip6_hdr *hdr, uint8_t *payload, uint16_t size)
 {
-	printf("%s\n", payload);
+	if (hdr == NULL) {
+		printf("main.c: Got message: %s\n", payload);
+		return;
+	}
+	printf("main.c: Looping incoming packet to output again\n");
+
+	pancake_send(my_pancake_handle, hdr, payload, size);
 }
 
 int main(int argc, int **argv)
@@ -21,13 +27,16 @@ int main(int argc, int **argv)
 
 	ret = pancake_init(&my_pancake_handle, &my_linux_options, &linux_cfg, stdout, my_read_callback);
 	if (ret != PANCSTATUS_OK) {
-		printf("pancake failed to initialize!\n");
+		printf("main.c: pancake failed to initialize!\n");
 	}
 
+#if 0
 	ret = pancake_write_test(my_pancake_handle);
 	if (ret != PANCSTATUS_OK) {
 		printf("pancake_write_test failed!\n");
 	}
+#endif
+	pancake_destroy(my_pancake_handle);
 
 	return EXIT_SUCCESS;
 }
