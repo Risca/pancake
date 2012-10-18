@@ -3,7 +3,12 @@
 #include <stdio.h>
 #include <unistd.h>
 #include <string.h>
-#include <pthread.h>
+#ifdef _WIN32
+    #include <windows.h>
+    #include <memory.h>
+#else
+    #include <pthread.h>
+#endif
 #include <netinet/in.h>
 #include <netinet/ip6.h>
 
@@ -18,8 +23,6 @@ struct pancake_dev_cfg linux_cfg = {
 	.destroy_func = linux_destroy_func,
 };
 
-pthread_t my_thread;
-
 static void populate_dummy_ipv6_header(struct ip6_hdr *hdr, uint16_t payload_length)
 {
 	/* Loopback (::1/128) */
@@ -31,9 +34,17 @@ static void populate_dummy_ipv6_header(struct ip6_hdr *hdr, uint16_t payload_len
 	hdr->ip6_plen	=	htons(payload_length);
 	hdr->ip6_nxt	=	254;
 	hdr->ip6_hops	=	2;
-	memcpy(hdr+8, &addr, 16);
-	memcpy(hdr+24, &addr, 16);
+
+    // Add next bytes
+	memcpy((uint8_t *)hdr + 8, &addr, 16);
+	memcpy((uint8_t *)hdr + 24, &addr, 16);
 }
+
+#ifdef _WIN32
+HANDLE win_thread;
+#else // Linux
+pthread_t my_thread;
+#endif
 
 static void linux_read_thread(void *dev_data)
 {
@@ -50,7 +61,11 @@ static void linux_read_thread(void *dev_data)
 		*payload = i;
 		*(payload+1) = 255-i;
 		populate_dummy_ipv6_header(hdr, 2);
+#ifdef _WIN32
+        Sleep(timeout*1000);
+#else
 		sleep(timeout);
+#endif
 		fprintf(out, "linux.c: Patching incoming packet to pancake_process_data()\n");
 		ret = pancake_process_data(dev_data, data, length);
 		if (ret != PANCSTATUS_OK) {
@@ -61,7 +76,11 @@ static void linux_read_thread(void *dev_data)
 
 static PANCSTATUS linux_init_func(void *dev_data)
 {
+    #ifdef _WIN32
+	win_thread = CreateThread(NULL, 0, &linux_read_thread, dev_data, 0, NULL);
+	#else // Linux
 	pthread_create (&my_thread, NULL, (void *) &linux_read_thread, dev_data);
+	#endif
 	return PANCSTATUS_OK;
 }
 
@@ -86,7 +105,7 @@ static PANCSTATUS linux_write_func(void *dev_data, uint8_t *data, uint16_t lengt
 				fprintf(out, " ");
 			}
 		}
-		
+
 		if ( (i+1) % 4 == 0 ) {
 			fputs("|\n", out);
 			fputs("+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+\n", out);
@@ -108,7 +127,12 @@ err_out:
 
 static PANCSTATUS linux_destroy_func(void *dev_data)
 {
+    #ifdef _WIN32
+    WaitForSingleObject(win_thread, INFINITE);
+	#else // Linux
 	pthread_join(my_thread, NULL);
+	#endif
+
 	return PANCSTATUS_OK;
 }
 

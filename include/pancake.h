@@ -4,6 +4,8 @@
 #include <config.h>
 #include <netinet/ip6.h>
 
+#define PANCAKE_MAX_HDR_SIZE 25
+
 typedef int8_t PANCHANDLE;
 typedef enum {
 	PANCSTATUS_OK,
@@ -43,4 +45,13 @@ PANCSTATUS pancake_send_packet(PANCHANDLE handle, uint8_t *ip6_packet, uint16_t 
 
 /* For lower layers */
 PANCSTATUS pancake_process_data(void *dev_data, uint8_t *data, uint16_t size);
+
+/* Header compression */
+struct pancake_compressed_ip6_hdr {
+    uint8_t hdr_data[PANCAKE_MAX_HDR_SIZE];
+    uint16_t size;
+};
+
+PANCSTATUS pancake_compress_header(struct ip6_hdr *hdr, struct pancake_compressed_ip6_hdr *compressed_hdr);
+
 #endif

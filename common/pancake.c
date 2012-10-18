@@ -2,6 +2,10 @@
 #include <stddef.h>
 #include <string.h>
 
+#ifdef _WIN32
+    #include <windows.h>
+#endif
+
 struct pancake_main_dev {
 	struct pancake_dev_cfg		*cfg;
 	struct pancake_options_cfg	*options;
@@ -99,13 +103,13 @@ PANCSTATUS pancake_send(PANCHANDLE handle, struct ip6_hdr *hdr, uint8_t *payload
 
 	/* Sanity check */
 	if ( 	handle < 0 ||
-			handle > PANC_MAX_DEVICES || 
+			handle > PANC_MAX_DEVICES ||
 			hdr == NULL ||
 			(payload == NULL && payload_length != 0) ) {
 		goto err_out;
 	}
 	dev = &devs[handle];
-	
+
 	/* Below this point we assume a lot! */
 	memcpy(data, hdr, 40);
 	memcpy(data+40, payload, payload_length);
