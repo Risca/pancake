@@ -6,6 +6,10 @@
     #include <windows.h>
 #endif
 
+/* None, 32 bit, 64 bit, 128 bit */
+uint16_t security_overhead[] = 
+	{0, 9, 13, 21};
+
 struct pancake_main_dev {
 	struct pancake_port_cfg		*cfg;
 	struct pancake_options_cfg	*options;
@@ -13,6 +17,25 @@ struct pancake_main_dev {
 	read_callback_func		read_callback;
 };
 static struct pancake_main_dev devs[PANC_MAX_DEVICES];
+
+#include "fragmentation.c"
+
+static uint16_t calculate_frame_overhead(struct pancake_main_dev *dev, struct pancake_compressed_ip6_hdr *hdr)
+{
+	uint16_t overhead = 0;
+	struct pancake_options_cfg *options = dev->options;
+
+	/* Link layer overhead (might not be needed) */
+	overhead += aMaxFrameOverhead;
+
+	/* Overhead due to security */
+	overhead += security_overhead[options->security];
+
+	/* Compression overhead */
+	overhead += hdr->size;
+
+	return overhead;
+}
 
 PANCSTATUS pancake_init(PANCHANDLE *handle, struct pancake_options_cfg *options_cfg, struct pancake_port_cfg *port_cfg, void *dev_data, read_callback_func read_callback)
 {
@@ -96,9 +119,13 @@ void pancake_destroy(PANCHANDLE handle)
 
 PANCSTATUS pancake_send(PANCHANDLE handle, struct ip6_hdr *hdr, uint8_t *payload, uint16_t payload_length)
 {
-	uint8_t data[127];
+	uint8_t i;
+	uint8_t data[aMaxPHYPacketSize];
 	uint16_t length;
 	struct pancake_main_dev *dev;
+	struct pancake_compressed_ip6_hdr compressed_ip6_hdr;
+	struct pancake_frag_hdr *frag_hdr;
+	uint16_t frame_overhead;
 	PANCSTATUS ret;
 
 	/* Sanity check */
@@ -110,11 +137,44 @@ PANCSTATUS pancake_send(PANCHANDLE handle, struct ip6_hdr *hdr, uint8_t *payload
 	}
 	dev = &devs[handle];
 
-	/* Below this point we assume a lot! */
-	memcpy(data, hdr, 40);
-	memcpy(data+40, payload, payload_length);
-	length = 40 + payload_length;
+	switch (dev->options->compression) {
+	case PANC_COMPRESSION_NONE:
+#if 0
+		compressed_ip6_hdr.hdr_data = hdr;
+#endif
+		compressed_ip6_hdr.size = 40;
+		break;
+	default:
+		/* Not supported... yet */
+		goto err_out;
+	}
 
+	frame_overhead = calculate_frame_overhead(dev, &compressed_ip6_hdr);
+
+	if (frame_overhead+payload_length > aMaxPHYPacketSize) {
+		frame_overhead += 4;
+		for (i=0; frame_overhead+payload_length > aMaxPHYPacketSize; i++) {
+			/* Fragment and send packages */
+			if (i == 0) {
+				frag_hdr = (struct pancake_frag_hdr *)(data + (frame_overhead-4));
+			}
+			else {
+				frag_hdr = (struct pancake_frag_hdr *)(data + (frame_overhead-5));
+			}
+			populate_fragmentation_header(handle, frag_hdr, frame_overhead - compressed_ip6_hdr.size, payload_length+compressed_ip6_hdr.size, i);
+			length = frame_overhead+payload_length; /* Should be 127 bytes */
+			ret = dev->cfg->write_func(dev->dev_data, data, length);
+			if (ret != PANCSTATUS_OK) {
+				goto err_out;
+			}
+			if (i == 0) {
+				frame_overhead += 1;
+			}
+			payload_length -= (aMaxPHYPacketSize - frame_overhead);
+		}
+	}
+
+	length = frame_overhead+payload_length;
 	ret = dev->cfg->write_func(dev->dev_data, NULL, data, length);
 	if (ret != PANCSTATUS_OK) {
 		goto err_out;

@@ -5,6 +5,9 @@
 #include <netinet/ip6.h>
 
 #define PANCAKE_MAX_HDR_SIZE 25
+#define aMaxPHYPacketSize 127
+#define aMaxFrameOverhead 25
+#define aMaxMPDUUnsecuredOverhead aMaxFrameOverhead
 
 typedef int8_t PANCHANDLE;
 typedef enum {
@@ -16,16 +19,16 @@ typedef enum {
 #include <port.h>
 
 enum pancake_header_compression {
-	PANC_COMPRESSION_NONE,
+	PANC_COMPRESSION_NONE = 0,
 	PANC_COMPRESSION_HC1,
 	PANC_COMPRESSION_HCIP,
 };
 
 enum pancake_security {
-	PANC_SECURITY_NONE,
-	PANC_SECURITY_AESCCM128,
-	PANC_SECURITY_AESCCM64,
+	PANC_SECURITY_NONE = 0,
 	PANC_SECURITY_AESCCM32,
+	PANC_SECURITY_AESCCM64,
+	PANC_SECURITY_AESCCM128,
 };
 
 struct pancake_options_cfg {
