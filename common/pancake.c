@@ -97,8 +97,11 @@ void pancake_destroy(PANCHANDLE handle)
 PANCSTATUS pancake_send(PANCHANDLE handle, struct ip6_hdr *hdr, uint8_t *payload, uint16_t payload_length)
 {
 	uint8_t data[127];
+	memset(data,0,127);
 	uint16_t length;
 	struct pancake_main_dev *dev;
+	struct pancake_compressed_ip6_hdr compressed_ip6_hdr;
+	compressed_ip6_hdr.hdr_data = data;
 	PANCSTATUS ret;
 
 	/* Sanity check */
@@ -111,9 +114,11 @@ PANCSTATUS pancake_send(PANCHANDLE handle, struct ip6_hdr *hdr, uint8_t *payload
 	dev = &devs[handle];
 
 	/* Below this point we assume a lot! */
-	memcpy(data, hdr, 40);
-	memcpy(data+40, payload, payload_length);
-	length = 40 + payload_length;
+	pancake_compress_header(hdr, &compressed_ip6_hdr);
+
+	//memcpy(data, hdr, 40);
+	memcpy(data + compressed_ip6_hdr.size, payload, payload_length);
+	length = compressed_ip6_hdr.size + payload_length;
 
 	ret = dev->cfg->write_func(dev->dev_data, data, length);
 	if (ret != PANCSTATUS_OK) {

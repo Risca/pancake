@@ -48,7 +48,7 @@ PANCSTATUS pancake_process_data(void *dev_data, uint8_t *data, uint16_t size);
 
 /* Header compression */
 struct pancake_compressed_ip6_hdr {
-    uint8_t hdr_data[PANCAKE_MAX_HDR_SIZE];
+    uint8_t *hdr_data;
     uint16_t size;
 };
 
