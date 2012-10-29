@@ -3,7 +3,7 @@
 #include <pancake.h>
 #include <netinet/ip6.h>
 
-extern struct pancake_dev_cfg linux_cfg;
+extern struct pancake_port_cfg linux_cfg;
 struct pancake_options_cfg my_linux_options = {
 	.compression = PANC_COMPRESSION_NONE,
 	.security = PANC_SECURITY_NONE,
