@@ -18,7 +18,8 @@ struct pancake_main_dev {
 };
 static struct pancake_main_dev devs[PANC_MAX_DEVICES];
 
-#include "fragmentation.c"
+#include "pancake_internals/fragmentation.c"
+#include "pancake_internals/reassembly.c"
 
 static uint16_t calculate_frame_overhead(struct pancake_main_dev *dev, struct pancake_compressed_ip6_hdr *hdr)
 {
@@ -203,7 +204,6 @@ static PANCHANDLE pancake_handle_from_dev_data(void *dev_data)
 	return -1;
 }
 
-#include <stdio.h>
 PANCSTATUS pancake_process_data(void *dev_data, uint8_t *data, uint16_t size)
 {
 	struct ip6_hdr *hdr;
