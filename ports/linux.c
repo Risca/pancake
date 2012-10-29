@@ -49,15 +49,16 @@ pthread_t my_thread;
 static void linux_read_thread(void *dev_data)
 {
 	uint8_t i, timeout = 1;
-	uint8_t data[127];
+	uint8_t data[127*3];
 	uint16_t length = 42;
 	PANCSTATUS ret;
 	FILE 			*out 		= (FILE *)dev_data;
 	struct ip6_hdr 	*hdr 		= (struct ip6_hdr *)data;
 	uint8_t			*payload	= data+40;
 
-	/* Send 10 packets with 5 seconds delay */
-	for (i=0; i < 10; i++) {
+#if 1
+	/* Send 3 packets with 1 seconds delay */
+	for (i=0; i < 3; i++) {
 		*payload = i;
 		*(payload+1) = 255-i;
 		populate_dummy_ipv6_header(hdr, 2);
@@ -71,6 +72,19 @@ static void linux_read_thread(void *dev_data)
 		if (ret != PANCSTATUS_OK) {
 			/* What to do, what to do? */
 		}
+	}
+#endif
+
+	/* Send 1 big packet */
+	for (i=0; i < 200; i++) {
+		*payload++ = (uint8_t)i;
+	}
+	populate_dummy_ipv6_header(hdr, 200);
+	length = 200+40;
+	fprintf(out, "linux.c: Patching incoming packet to pancake_process_data()\n");
+	ret = pancake_process_data(dev_data, data, length);
+	if (ret != PANCSTATUS_OK) {
+		/* What to do, what to do? */
 	}
 }
 
