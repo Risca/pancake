@@ -44,50 +44,45 @@ PANCSTATUS pancake_send_fragmented(struct pancake_main_dev *dev, uint8_t *raw_da
 	uint16_t dgram_len;
 	uint16_t space_available;
 	uint16_t offset = 0;
-	uint8_t frag_hdr_len = 4;
+	uint8_t frag_hdr_len;
 
 	/* Calculate some stuff we'll need later */
 	frame_overhead = calculate_frame_overhead(dev, comp_hdr);
-	dgram_hdr_len = frame_overhead - comp_hdr->size;
 	dgram_len = comp_hdr->size + payload_len;
-	space_available = packet_size - (dgram_hdr_len + frag_hdr_len);
+	dgram_hdr_len = frame_overhead - comp_hdr->size;
+	frag_hdr_len = dgram_hdr_len + 4;
+	space_available = packet_size - frag_hdr_len;
 	payload_len += comp_hdr->size;
 
-	/* First packet */
+	/* Define the location of the fragmentation header */
 	frag_hdr = (struct pancake_frag_hdr *)(raw_data + dgram_hdr_len);
-
-	/* Fill in fragmentation header */
-	populate_fragmentation_header(frag_hdr, dgram_hdr_len, dgram_len, 0);
-
-	/* Copy (compressed) IPv6 header */
-	memcpy((void*)(raw_data + dgram_hdr_len + frag_hdr_len), (void*)comp_hdr->hdr_data, comp_hdr->size);
-	/* Copy first part of payload */
-	memcpy((void*)(raw_data + dgram_hdr_len + frag_hdr_len + comp_hdr->size), (void*)payload, space_available - comp_hdr->size);
-
-	/* Send packet */
-	ret = dev->cfg->write_func(dev->dev_data, raw_data, packet_size);
-	if (ret != PANCSTATUS_OK) {
-		goto err_out;
-	}
-
-	/* Adjust counters */
-	offset      += space_available;
-	payload_len -= space_available;
-
-	/* Subsequent packages have 1 less byte available */
-	frag_hdr_len += 1;
-	space_available   -= 1;
 
 	do {
 		/* Fill in fragmentation header */
 		populate_fragmentation_header(frag_hdr, dgram_hdr_len, dgram_len, offset);
 
-		/* Copy payload */
-		memcpy((void*)(raw_data + dgram_hdr_len + frag_hdr_len), (void*)(payload + (offset - comp_hdr->size)), space_available);
+		/* Special treatment of first packet */
+		if (offset == 0) {
+			/* Copy (compressed) IPv6 header */
+			memcpy((void*)(raw_data + frag_hdr_len), (void*)comp_hdr->hdr_data, comp_hdr->size);
+			/* Copy first part of payload */
+			memcpy((void*)(raw_data + frag_hdr_len + comp_hdr->size), (void*)payload, space_available - comp_hdr->size);
+		}
+		else {
+			/* Copy payload */
+			memcpy((void*)(raw_data + frag_hdr_len), (void*)(payload + (offset - comp_hdr->size)), space_available);
+		}
 
 		/* Adjust counters */
 		offset      += space_available;
 		payload_len -= space_available;
+
+		/* Again first packet treatment */
+		if (offset == space_available) {
+			/* Subsequent packages have 1 less byte available */
+			frag_hdr_len    += 1;
+			space_available -= 1;
+		}
 
 		/* Time to pay a little visit to the transmission fairy */
 		ret = dev->cfg->write_func(dev->dev_data, raw_data, packet_size);
@@ -96,17 +91,19 @@ PANCSTATUS pancake_send_fragmented(struct pancake_main_dev *dev, uint8_t *raw_da
 		}
 	} while (payload_len > space_available);
 
+	/* Last packet is a little special */
 	/* Fill in fragmentation header */
 	populate_fragmentation_header(frag_hdr, dgram_hdr_len, dgram_len, offset);
 
 	/* Copy payload */
-	memcpy((void*)(raw_data + dgram_hdr_len + frag_hdr_len), (void*)(payload + (offset - comp_hdr->size)), payload_len);
+	memcpy((void*)(raw_data + frag_hdr_len), (void*)(payload + (offset - comp_hdr->size)), payload_len);
 
 	/* Time to pay a little visit to the transmission fairy */
-	ret = dev->cfg->write_func(dev->dev_data, raw_data, dgram_hdr_len + frag_hdr_len + payload_len);
+	ret = dev->cfg->write_func(dev->dev_data, raw_data, frag_hdr_len + payload_len);
 	if (ret != PANCSTATUS_OK) {
 		goto err_out;
 	}
+
 	return PANCSTATUS_OK;
 err_out:
 	return PANCSTATUS_ERR;
