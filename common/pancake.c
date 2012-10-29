@@ -7,37 +7,37 @@
 #endif
 
 struct pancake_main_dev {
-	struct pancake_dev_cfg		*cfg;
+	struct pancake_port_cfg		*cfg;
 	struct pancake_options_cfg	*options;
-	void						*dev_data;
-	read_callback_func			read_callback;
+	void				*dev_data;
+	read_callback_func		read_callback;
 };
 static struct pancake_main_dev devs[PANC_MAX_DEVICES];
 
-PANCSTATUS pancake_init(PANCHANDLE *handle, struct pancake_options_cfg *options_cfg, struct pancake_dev_cfg *dev_cfg, void *dev_data, read_callback_func read_callback)
+PANCSTATUS pancake_init(PANCHANDLE *handle, struct pancake_options_cfg *options_cfg, struct pancake_port_cfg *port_cfg, void *dev_data, read_callback_func read_callback)
 {
 	int8_t ret;
 	static uint8_t handle_count = 0;
 	struct pancake_main_dev *dev = &devs[handle_count];
 
 	/* Sanity check */
-	if (handle == NULL || options_cfg == NULL || dev_cfg == NULL || handle_count+1 > PANC_MAX_DEVICES) {
+	if (handle == NULL || options_cfg == NULL || port_cfg == NULL || handle_count+1 > PANC_MAX_DEVICES) {
 		goto err_out;
 	}
-	if (dev_cfg->write_func == NULL) {
+	if (port_cfg->write_func == NULL) {
 		goto err_out;
 	}
 
 	/* Initialize port */
-	if (dev_cfg->init_func) {
-		ret = dev_cfg->init_func(dev_data);
+	if (port_cfg->init_func) {
+		ret = port_cfg->init_func(dev_data);
 		if (ret < 0) {
 			goto err_out;
 		}
 	}
 
 	/* Save config and device data, and update handle */
-	dev->cfg = dev_cfg;
+	dev->cfg = port_cfg;
 	dev->options = options_cfg;
 	dev->dev_data = dev_data;
 	dev->read_callback = read_callback;
@@ -54,8 +54,8 @@ PANCSTATUS pancake_write_test(PANCHANDLE handle)
 	uint8_t ret;
 	struct pancake_main_dev	*dev = &devs[handle];
 	struct ip6_hdr hdr = {
-		.ip6_flow	=	htonl(6 << 28),
-		.ip6_plen	=	htons(255),
+		//.ip6_flow	=	htonl(6 << 28),
+		//.ip6_plen	=	htons(255),
 		.ip6_nxt	=	254,
 		.ip6_hops	=	2,
 		.ip6_src	=	{

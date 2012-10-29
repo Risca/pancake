@@ -35,7 +35,7 @@ struct pancake_options_cfg {
 
 typedef void (*read_callback_func)(struct ip6_hdr *hdr, uint8_t *payload, uint16_t payload_length);
 
-PANCSTATUS pancake_init(PANCHANDLE *handle, struct pancake_options_cfg *options_cfg, struct pancake_dev_cfg *dev_cfg, void *dev_data, read_callback_func read_callback);
+PANCSTATUS pancake_init(PANCHANDLE *handle, struct pancake_options_cfg *options_cfg, struct pancake_port_cfg *port_cfg, void *dev_data, read_callback_func read_callback);
 PANCSTATUS pancake_write_test(PANCHANDLE handle);
 void pancake_destroy(PANCHANDLE handle);
 
