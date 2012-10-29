@@ -18,16 +18,15 @@ struct pancake_main_dev {
 };
 static struct pancake_main_dev devs[PANC_MAX_DEVICES];
 
-#include "pancake_internals/fragmentation.c"
-#include "pancake_internals/reassembly.c"
-
 static uint16_t calculate_frame_overhead(struct pancake_main_dev *dev, struct pancake_compressed_ip6_hdr *hdr)
 {
 	uint16_t overhead = 0;
 	struct pancake_options_cfg *options = dev->options;
 
+#if 0
 	/* Link layer overhead (might not be needed) */
 	overhead += aMaxFrameOverhead;
+#endif 
 
 	/* Overhead due to security */
 	overhead += security_overhead[options->security];
@@ -37,6 +36,9 @@ static uint16_t calculate_frame_overhead(struct pancake_main_dev *dev, struct pa
 
 	return overhead;
 }
+
+#include "pancake_internals/fragmentation.c"
+#include "pancake_internals/reassembly.c"
 
 PANCSTATUS pancake_init(PANCHANDLE *handle, struct pancake_options_cfg *options_cfg, struct pancake_port_cfg *port_cfg, void *dev_data, read_callback_func read_callback)
 {
@@ -121,11 +123,10 @@ void pancake_destroy(PANCHANDLE handle)
 PANCSTATUS pancake_send(PANCHANDLE handle, struct ip6_hdr *hdr, uint8_t *payload, uint16_t payload_length)
 {
 	uint8_t i;
-	uint8_t data[aMaxPHYPacketSize];
+	uint8_t raw_data[aMaxPHYPacketSize - aMaxFrameOverhead];
 	uint16_t length;
 	struct pancake_main_dev *dev;
 	struct pancake_compressed_ip6_hdr compressed_ip6_hdr;
-	struct pancake_frag_hdr *frag_hdr;
 	uint16_t frame_overhead;
 	PANCSTATUS ret;
 
@@ -140,9 +141,7 @@ PANCSTATUS pancake_send(PANCHANDLE handle, struct ip6_hdr *hdr, uint8_t *payload
 
 	switch (dev->options->compression) {
 	case PANC_COMPRESSION_NONE:
-#if 0
-		compressed_ip6_hdr.hdr_data = hdr;
-#endif
+		compressed_ip6_hdr.hdr_data = (uint8_t *)hdr;
 		compressed_ip6_hdr.size = 40;
 		break;
 	default:
@@ -150,35 +149,24 @@ PANCSTATUS pancake_send(PANCHANDLE handle, struct ip6_hdr *hdr, uint8_t *payload
 		goto err_out;
 	}
 
+	/* Check if fragmentation is needed */
 	frame_overhead = calculate_frame_overhead(dev, &compressed_ip6_hdr);
-
-	if (frame_overhead+payload_length > aMaxPHYPacketSize) {
-		frame_overhead += 4;
-		for (i=0; frame_overhead+payload_length > aMaxPHYPacketSize; i++) {
-			/* Fragment and send packages */
-			if (i == 0) {
-				frag_hdr = (struct pancake_frag_hdr *)(data + (frame_overhead-4));
-			}
-			else {
-				frag_hdr = (struct pancake_frag_hdr *)(data + (frame_overhead-5));
-			}
-			populate_fragmentation_header(handle, frag_hdr, frame_overhead - compressed_ip6_hdr.size, payload_length+compressed_ip6_hdr.size, i);
-			length = frame_overhead+payload_length; /* Should be 127 bytes */
-			ret = dev->cfg->write_func(dev->dev_data, data, length);
-			if (ret != PANCSTATUS_OK) {
-				goto err_out;
-			}
-			if (i == 0) {
-				frame_overhead += 1;
-			}
-			payload_length -= (aMaxPHYPacketSize - frame_overhead);
+	if (frame_overhead + aMaxFrameOverhead + payload_length > aMaxPHYPacketSize) {
+		/* pancake_send_fragmented() sends the whole payload, but in multiple packets */
+		ret = pancake_send_fragmented(dev, raw_data, &compressed_ip6_hdr, payload, payload_length);
+		if (ret != PANCSTATUS_OK) {
+			goto err_out;
 		}
 	}
-
-	length = frame_overhead+payload_length;
-	ret = dev->cfg->write_func(dev->dev_data, NULL, data, length);
-	if (ret != PANCSTATUS_OK) {
-		goto err_out;
+	else {
+		/* Packet fits inside a single packet, copy header and payload to raw_data and send */
+		memcpy((void*)raw_data, (void*)compressed_ip6_hdr.hdr_data, compressed_ip6_hdr.size);
+		memcpy((void*)(raw_data+compressed_ip6_hdr.size), (void*)payload, payload_length);
+		length = frame_overhead+payload_length;
+		ret = dev->cfg->write_func(dev->dev_data, NULL, data, length);
+		if (ret != PANCSTATUS_OK) {
+			goto err_out;
+		}
 	}
 
 	return PANCSTATUS_OK;
