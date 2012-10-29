@@ -47,5 +47,13 @@ $(TARGET): $(OBJECTS)
 $(BUILDDIR)/%.o: %.c
 	$(CC) $(CFLAGS) -c -o $@ $<
 
+$(OBJECTS): | $(BUILDDIR)
+
+$(BUILDDIR):
+	@test -d $(BUILDDIR) || mkdir $(BUILDDIR)
+
 clean:
 	$(RM) $(OBJECTS) $(TARGETS)
+
+distclean: clean
+	rm -r $(BUILDDIR)
