@@ -36,6 +36,13 @@ int main(int argc, int **argv)
 		printf("pancake_write_test failed!\n");
 	}
 #endif
+
+#if 1
+	ret = pancake_reassembly_test(my_pancake_handle);
+	if (ret != PANCSTATUS_OK) {
+		printf("pancake_write_test failed!\n");
+	}
+#endif
 	pancake_destroy(my_pancake_handle);
 
 	return EXIT_SUCCESS;

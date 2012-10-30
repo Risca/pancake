@@ -59,7 +59,7 @@ static void linux_read_thread(void *dev_data)
 	/* Raw IPv6 packet dispatch value */
 	data[0] = 0x41;
 
-#if 1
+#if 0
 	/* Send 3 packets with 1 seconds delay */
 	for (i=0; i < 3; i++) {
 		*payload = i;
@@ -78,6 +78,7 @@ static void linux_read_thread(void *dev_data)
 	}
 #endif
 
+#if 0
 	/* Send 1 big packet */
 	for (i=0; i < 200; i++) {
 		*payload++ = (uint8_t)i;
@@ -89,6 +90,7 @@ static void linux_read_thread(void *dev_data)
 	if (ret != PANCSTATUS_OK) {
 		/* What to do, what to do? */
 	}
+#endif
 }
 
 static PANCSTATUS linux_init_func(void *dev_data)

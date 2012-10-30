@@ -48,6 +48,11 @@ static uint16_t calculate_frame_overhead(struct pancake_main_dev *dev, struct pa
 	return overhead;
 }
 
+struct pancake_frag_hdr {
+	uint16_t size;
+	uint16_t tag;
+	uint8_t offset;
+};
 #include "pancake_internals/fragmentation.c"
 #include "pancake_internals/reassembly.c"
 
@@ -86,6 +91,7 @@ err_out:
 	return PANCSTATUS_ERR;
 }
 
+#if PANC_TESTS_ENABLED != 0
 PANCSTATUS pancake_write_test(PANCHANDLE handle)
 {
 	uint8_t ret;
@@ -119,6 +125,7 @@ PANCSTATUS pancake_write_test(PANCHANDLE handle)
 err_out:
 	return PANCSTATUS_ERR;
 }
+#endif
 
 void pancake_destroy(PANCHANDLE handle)
 {
@@ -216,6 +223,7 @@ PANCSTATUS pancake_process_data(void *dev_data, struct pancake_ieee_addr *src, s
 	PANCSTATUS ret;
 	PANCHANDLE handle;
 	struct pancake_main_dev *dev;
+	struct pancake_reassembly_buffer *ra_buf = NULL;
 
 	/* Try to get handle */
 	handle = pancake_handle_from_dev_data(dev_data);
@@ -227,6 +235,8 @@ PANCSTATUS pancake_process_data(void *dev_data, struct pancake_ieee_addr *src, s
 	/* Read dispatch value */
 	switch (*data) {
 	case IPv6:
+		payload = data + 1 + 40;
+		payload_length = size - (1 + 40);
 		break;
 	case LOWPAN_HC1:
 	case LOWPAN_BC0:
@@ -235,7 +245,12 @@ PANCSTATUS pancake_process_data(void *dev_data, struct pancake_ieee_addr *src, s
 		switch (*data & 0xF8) {
 		case FRAG1:
 		case FRAGN:
-			pancake_reassemble(dev, src, dst, data, size);
+			ra_buf = pancake_reassemble(dev, src, dst, data, size);
+			if (ra_buf == NULL) {
+				goto err_out;
+			}
+			payload = ra_buf->data;
+			payload_length = ra_buf->frag_hdr.size;
 			break;
 		default:
 			if (*data & 0xC0 == MESH) {
@@ -249,16 +264,12 @@ PANCSTATUS pancake_process_data(void *dev_data, struct pancake_ieee_addr *src, s
 		}
 	};
 
-	/* From this point on, we assume a lot! */
-	hdr = (struct ip6_hdr *)(data + 1);
-	payload = data + 1 + 40;
-	payload_length = size - (1 + 40);
-
 	/* Relay data to upper levels */
 	dev->read_callback(hdr, payload, payload_length);
 
 	return PANCSTATUS_OK;
 err_out:
+	printf("pancake.c: Failed to process data\n");
 	return PANCSTATUS_ERR;
 }
 
