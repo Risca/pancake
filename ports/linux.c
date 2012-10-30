@@ -71,7 +71,7 @@ static void linux_read_thread(void *dev_data)
 		sleep(timeout);
 #endif
 		fprintf(out, "linux.c: Patching incoming packet to pancake_process_data()\n");
-		ret = pancake_process_data(dev_data, data, length);
+		ret = pancake_process_data(dev_data, NULL, NULL, data, length);
 		if (ret != PANCSTATUS_OK) {
 			/* What to do, what to do? */
 		}
@@ -85,7 +85,7 @@ static void linux_read_thread(void *dev_data)
 	populate_dummy_ipv6_header(hdr, 200);
 	length = 200 + 1 + 40;
 	fprintf(out, "linux.c: Patching incoming packet to pancake_process_data()\n");
-	ret = pancake_process_data(dev_data, data, length);
+	ret = pancake_process_data(dev_data, NULL, NULL, data, length);
 	if (ret != PANCSTATUS_OK) {
 		/* What to do, what to do? */
 	}

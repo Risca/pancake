@@ -2,5 +2,6 @@
 #define CONFIG_H
 
 #define PANC_MAX_DEVICES 1
+#define PANC_MAX_CONCURRENT_REASSEMBLIES 5
 
 #endif

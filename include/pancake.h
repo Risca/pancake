@@ -5,6 +5,7 @@
 #include <netinet/ip6.h>
 
 #define PANCAKE_MAX_HDR_SIZE 25
+#define IPv6_MTU 1280
 #define aMaxPHYPacketSize 127
 #define aMaxFrameOverhead 25
 #define aMaxMPDUUnsecuredOverhead aMaxFrameOverhead
@@ -53,7 +54,7 @@ PANCSTATUS pancake_send(PANCHANDLE handle, struct ip6_hdr *hdr, uint8_t *payload
 PANCSTATUS pancake_send_packet(PANCHANDLE handle, uint8_t *ip6_packet, uint16_t packet_length);
 
 /* For lower layers */
-PANCSTATUS pancake_process_data(void *dev_data, uint8_t *data, uint16_t size);
+PANCSTATUS pancake_process_data(void *dev_data, struct pancake_ieee_addr *src, struct pancake_ieee_addr *dst, uint8_t *data, uint16_t size);
 
 /* Header compression */
 struct pancake_compressed_ip6_hdr {

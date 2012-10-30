@@ -208,7 +208,7 @@ static PANCHANDLE pancake_handle_from_dev_data(void *dev_data)
 	return -1;
 }
 
-PANCSTATUS pancake_process_data(void *dev_data, uint8_t *data, uint16_t size)
+PANCSTATUS pancake_process_data(void *dev_data, struct pancake_ieee_addr *src, struct pancake_ieee_addr *dst, uint8_t *data, uint16_t size)
 {
 	struct ip6_hdr *hdr;
 	uint8_t *payload;
@@ -234,8 +234,8 @@ PANCSTATUS pancake_process_data(void *dev_data, uint8_t *data, uint16_t size)
 	default:
 		switch (*data & 0xF8) {
 		case FRAG1:
-			break;
 		case FRAGN:
+			pancake_reassemble(dev, src, dst, data, size);
 			break;
 		default:
 			if (*data & 0xC0 == MESH) {
