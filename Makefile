@@ -19,7 +19,7 @@ INCLUDES	:=	$(INCLUDEDIR)/pancake.h
 # Add some sources
 SOURCES		:=	$(COMMONDIR)/pancake.c
 SOURCES		+=	$(COMMONDIR)/in6_addr.c
-SOURCES		+=	$(PORTSDIR)/$(TARGET).c
+SOURCES		+=	$(PORTSDIR)/$(TARGET)/port.c
 SOURCES		+=	$(TOPDIR)/main.c
 
 # Include target specific stuff

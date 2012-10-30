@@ -142,24 +142,24 @@
         </option>
         <option>
           <name>RTDescription</name>
-          <state>Use the normal configuration of the C/EC++ runtime library. No locale interface, C locale, no file descriptor support, no multibytes in printf and scanf, and no hex floats in strtod.</state>
+          <state>Use the legacy C runtime library.</state>
         </option>
         <option>
           <name>RTConfigPath</name>
-          <state>$TOOLKIT_DIR$\LIB\DLIB\dl8051Normal.h</state>
+          <state></state>
         </option>
         <option>
           <name>RTLibraryPath</name>
-          <state>$TOOLKIT_DIR$\LIB\DLIB\dl-pli-nlxd-1e16x01.r51</state>
+          <state>$TOOLKIT_DIR$\LIB\CLIB\cl-pli-nlxd-1e16x01.r51</state>
         </option>
         <option>
           <name>Input variant</name>
           <version>0</version>
-          <state>2</state>
+          <state>1</state>
         </option>
         <option>
           <name>Input description</name>
-          <state>No float.</state>
+          <state>Full formatting.</state>
         </option>
         <option>
           <name>Output variant</name>
@@ -243,12 +243,12 @@
         <option>
           <name>GRuntimeLibSelect2</name>
           <version>0</version>
-          <state>1</state>
+          <state>3</state>
         </option>
         <option>
           <name>GRuntimeLibSelectSlave2</name>
           <version>0</version>
-          <state>1</state>
+          <state>3</state>
         </option>
       </data>
     </settings>
@@ -457,6 +457,7 @@
           <state>$PROJ_DIR$\..\..\..\..\..\Components\services\sdata</state>
           <state>$PROJ_DIR$\..\..\..\..\..\..\..\..\include</state>
           <state>$PROJ_DIR$\..\..\..\..\..\..\..\..\include\netinet</state>
+          <state>$PROJ_DIR$\..\..\..\..\..\..\include</state>
         </option>
         <option>
           <name>CCStdIncCheck</name>
@@ -4194,6 +4195,15 @@
       <name>CC2530_Hello_World</name>
       <file>
         <name>$PROJ_DIR$\..\..\..\..\..\..\..\..\examples\cc2530_hello_world\main.c</name>
+        <excluded>
+          <configuration>Normal</configuration>
+        </excluded>
+      </file>
+      <file>
+        <name>$PROJ_DIR$\..\..\..\..\..\..\..\..\examples\cc2530_hello_world\osal_setup.c</name>
+        <excluded>
+          <configuration>Normal</configuration>
+        </excluded>
       </file>
     </group>
   </group>

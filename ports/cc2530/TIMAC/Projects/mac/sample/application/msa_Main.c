@@ -107,7 +107,7 @@ int main(void)
   HalDriverInit();
 
   /* Initialize MAC */
-  MAC_Init();
+  //MAC_Init();
 
   /* Initialize the operating system */
   osal_init_system();

@@ -4,7 +4,7 @@
 #include <netinet/ip6.h>
 
 extern struct pancake_dev_cfg linux_cfg;
-struct pancake_options_cfg my_linux_options = {
+struct pancake_options_cfg my_options = {
 	.compression = PANC_COMPRESSION_NONE,
 	.security = PANC_SECURITY_NONE,
 };
@@ -25,7 +25,7 @@ int main(int argc, int **argv)
 {
 	PANCSTATUS ret;
 #if 0
-	ret = pancake_init(&my_pancake_handle, &my_linux_options, &linux_cfg, stdout, my_read_callback);
+	ret = pancake_init(&my_pancake_handle, &my_options, &linux_cfg, NULL, my_read_callback);
 	if (ret != PANCSTATUS_OK) {
 		printf("main.c: pancake failed to initialize!\n");
 	}
