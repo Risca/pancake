@@ -6,6 +6,17 @@
     #include <windows.h>
 #endif
 
+/* Updated to reflect RFC6282 */
+#define NALP        0x00
+#define ESC         0x40
+#define IPv6        0x41
+#define LOWPAN_HC1  0x42
+#define LOWPAN_BC0  0x50
+#define LOWPAN_IPHC 0x7F
+#define MESH        0x80
+#define FRAG1       0xC0
+#define FRAGN       0xE0
+
 /* None, 32 bit, 64 bit, 128 bit */
 uint16_t security_overhead[] = 
 	{0, 9, 13, 21};
@@ -31,8 +42,8 @@ static uint16_t calculate_frame_overhead(struct pancake_main_dev *dev, struct pa
 	/* Overhead due to security */
 	overhead += security_overhead[options->security];
 
-	/* Compression overhead */
-	overhead += hdr->size;
+	/* Compression overhead (+1 dispatch byte) */
+	overhead += hdr->size + 1;
 
 	return overhead;
 }
@@ -143,6 +154,7 @@ PANCSTATUS pancake_send(PANCHANDLE handle, struct ip6_hdr *hdr, uint8_t *payload
 	case PANC_COMPRESSION_NONE:
 		compressed_ip6_hdr.hdr_data = (uint8_t *)hdr;
 		compressed_ip6_hdr.size = 40;
+		compressed_ip6_hdr.dispatch_value = IPv6;
 		break;
 	default:
 		/* Not supported... yet */
@@ -158,12 +170,16 @@ PANCSTATUS pancake_send(PANCHANDLE handle, struct ip6_hdr *hdr, uint8_t *payload
 			goto err_out;
 		}
 	}
+	/* Packet fits inside a single packet, copy header and payload to raw_data and send */
 	else {
-		/* Packet fits inside a single packet, copy header and payload to raw_data and send */
-		memcpy((void*)raw_data, (void*)compressed_ip6_hdr.hdr_data, compressed_ip6_hdr.size);
-		memcpy((void*)(raw_data+compressed_ip6_hdr.size), (void*)payload, payload_length);
+		/* Dispatch value */
+		*raw_data = compressed_ip6_hdr.dispatch_value;
+		/* Copy header and data */
+		memcpy((void*)(raw_data + 1), (void*)compressed_ip6_hdr.hdr_data, compressed_ip6_hdr.size);
+		memcpy((void*)(raw_data + compressed_ip6_hdr.size + 1), (void*)payload, payload_length);
+
 		length = frame_overhead+payload_length;
-		ret = dev->cfg->write_func(dev->dev_data, NULL, data, length);
+		ret = dev->cfg->write_func(dev->dev_data, NULL, raw_data, length);
 		if (ret != PANCSTATUS_OK) {
 			goto err_out;
 		}
@@ -208,10 +224,35 @@ PANCSTATUS pancake_process_data(void *dev_data, uint8_t *data, uint16_t size)
 	}
 	dev = &devs[handle];
 
+	/* Read dispatch value */
+	switch (*data) {
+	case IPv6:
+		break;
+	case LOWPAN_HC1:
+	case LOWPAN_BC0:
+	case LOWPAN_IPHC:
+	default:
+		switch (*data & 0xF8) {
+		case FRAG1:
+			break;
+		case FRAGN:
+			break;
+		default:
+			if (*data & 0xC0 == MESH) {
+				/* Not implemented yet */
+				goto err_out;
+			}
+			else {
+				/* Not a LowPAN frame */
+				goto err_out;
+			}
+		}
+	};
+
 	/* From this point on, we assume a lot! */
-	hdr = (struct ip6_hdr *)data;
-	payload = data+40;
-	payload_length = size-40;
+	hdr = (struct ip6_hdr *)(data + 1);
+	payload = data + 1 + 40;
+	payload_length = size - (1 + 40);
 
 	/* Relay data to upper levels */
 	dev->read_callback(hdr, payload, payload_length);
