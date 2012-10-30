@@ -71,7 +71,7 @@ PANCSTATUS pancake_write_test(PANCHANDLE handle)
 	};
 	uint16_t length	= sizeof(hdr);
 
-	ret = dev->cfg->write_func(dev->dev_data, (uint8_t*)&hdr, length);
+	ret = dev->cfg->write_func(dev->dev_data, NULL, (uint8_t*)&hdr, length);
 	if (ret != PANCSTATUS_OK || length != sizeof(hdr)) {
 		goto err_out;
 	}
@@ -115,7 +115,7 @@ PANCSTATUS pancake_send(PANCHANDLE handle, struct ip6_hdr *hdr, uint8_t *payload
 	memcpy(data+40, payload, payload_length);
 	length = 40 + payload_length;
 
-	ret = dev->cfg->write_func(dev->dev_data, data, length);
+	ret = dev->cfg->write_func(dev->dev_data, NULL, data, length);
 	if (ret != PANCSTATUS_OK) {
 		goto err_out;
 	}
