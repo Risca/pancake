@@ -116,6 +116,13 @@ PANCSTATUS pancake_send(PANCHANDLE handle, struct ip6_hdr *hdr, uint8_t *payload
 	/* Below this point we assume a lot! */
 	pancake_compress_header(hdr, &compressed_ip6_hdr);
 
+	// Test diff
+	struct ip6_hdr hdr2;
+	memcpy(&hdr2, hdr, sizeof(struct ip6_hdr));
+
+	hdr2.ip6_dst.s6_addr[3] = 3;
+	pancake_diff_header(hdr, &hdr2);
+
 	//memcpy(data, hdr, 40);
 	memcpy(data + compressed_ip6_hdr.size, payload, payload_length);
 	length = compressed_ip6_hdr.size + payload_length;

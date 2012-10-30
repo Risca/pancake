@@ -91,8 +91,98 @@ PANCSTATUS pancake_compress_header(struct ip6_hdr *hdr, struct pancake_compresse
     data++;
     *data = hdr->ip6_dst.s6_addr[15];
     compressed_hdr->size += 2;
+
+    return PANCSTATUS_OK;
 }
 
 /**
- *
+ * Header decompression
  */
+PANCSTATUS pancake_decompress_header(struct pancake_compressed_ip6_hdr *compressed_hdr, struct ip6_hdr *hdr)
+{
+
+}
+
+/**
+ * Header diff check
+ * Checks if headers are the same
+ */
+PANCSTATUS pancake_diff_header(struct ip6_hdr *origin_hdr, struct ip6_hdr *decompressed_hdr)
+{
+    uint8_t *ip6_src_origin;
+    uint8_t *ip6_src_decomp;
+    uint8_t *ip6_dst_origin;
+    uint8_t *ip6_dst_decomp;
+    uint8_t ip_len = 16;
+    uint8_t i = 0;
+
+    printf("%s", "Diff headers origin/decompressed\n");
+
+    // Check flow bits
+    if (origin_hdr->ip6_flow != decompressed_hdr->ip6_flow) {
+        printf("Flow ID not equal, origin: %x, decompressed: %x\n", origin_hdr->ip6_flow, decompressed_hdr->ip6_flow);
+        return PANCSTATUS_ERR;
+    }
+
+    // Check payload length
+    if (origin_hdr->ip6_plen != decompressed_hdr->ip6_plen) {
+        printf("Payload length not equal, origin: %x, decompressed: %x\n", origin_hdr->ip6_plen, decompressed_hdr->ip6_plen);
+        return PANCSTATUS_ERR;
+    }
+
+    // Check next header
+    if (origin_hdr->ip6_nxt != decompressed_hdr->ip6_nxt) {
+        printf("Next header not equal, origin: %x, decompressed: %x\n", origin_hdr->ip6_nxt, decompressed_hdr->ip6_nxt);
+        return PANCSTATUS_ERR;
+    }
+
+    // Check hop limit
+    if (origin_hdr->ip6_hlim != decompressed_hdr->ip6_hlim) {
+        printf("Hop limit not equal, origin: %x, decompressed: %x\n", origin_hdr->ip6_hlim, decompressed_hdr->ip6_hlim);
+        return PANCSTATUS_ERR;
+    }
+
+    // Check source address
+    ip6_src_origin = origin_hdr->ip6_src.s6_addr;
+    ip6_src_decomp = decompressed_hdr->ip6_src.s6_addr;
+
+    for(i = 0; i < ip_len; i += 1) {
+        if (ip6_src_origin[i] != ip6_src_decomp[i]) {
+            printf("Source adress not equal, error at byte %u\n", i + 1);
+
+            // Print addresses
+            pancake_print_addr(&origin_hdr->ip6_dst);
+            printf("%s", "\n");
+            pancake_print_addr(&decompressed_hdr->ip6_dst);
+            printf("%s", "\n");
+
+            pancake_addr_error_line(i);
+
+            return PANCSTATUS_ERR;
+        }
+    }
+
+    // Check Destination address
+    ip6_dst_origin = origin_hdr->ip6_dst.s6_addr;
+    ip6_dst_decomp = decompressed_hdr->ip6_dst.s6_addr;
+
+    for(i = 0; i < ip_len; i += 1) {
+        if (ip6_dst_origin[i] != ip6_dst_decomp[i]) {
+            printf("Destination adress not equal, error at byte %u\n", i + 1);
+
+            // Print addresses
+            pancake_print_addr(&origin_hdr->ip6_dst);
+            printf("%s", "\n");
+            pancake_print_addr(&decompressed_hdr->ip6_dst);
+            printf("%s", "\n");
+
+            pancake_addr_error_line(i);
+
+            return PANCSTATUS_ERR;
+        }
+    }
+
+    printf("%s", "Headers equal             [ OK ]\n");
+
+    return PANCSTATUS_OK;
+}

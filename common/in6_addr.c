@@ -31,3 +31,20 @@ void pancake_format_addr(struct in6_addr *addr, char *str)
         sprintf(str, "%s:%.4x", str, temp);
     }
 }
+
+/**
+ * Print IPv6 address error position
+ */
+void pancake_addr_error_line(uint8_t byte_position)
+{
+
+    for(; byte_position > 0; byte_position -= 1) {
+
+        if (byte_position % 2 == 0) {
+            printf("%s", " ");
+        }
+
+        printf("%s", "  ");
+    }
+    printf("%s", "^^\n");
+}
