@@ -33,6 +33,21 @@ err_out:
 	return PANCSTATUS_ERR;
 }
 
+/*
+ * First packet:
+ * +-----------------------------------------------------------------+
+ * | Datagram Header (fixed length)             | Datagram           |
+ * +-----------------+-------+-------+----------+--------------------+
+ * | Header overhead | F Typ | F Hdr | IPv6 Typ | IPv6 Hdr | Payload |
+ * +-----------------+-------+-------+----------+--------------------+
+ * 
+ * Subsequent packets:
+ * +-----------------------------------------------------------------+
+ * | Datagram Header (fixed length)             | Datagram           |
+ * +-----------------+-------+------------------+--------------------+
+ * | Header overhead | F Typ | F Hdr (+offset)  | ...yload           |
+ * +-----------------+-------+------------------+--------------------+
+ */ 
 PANCSTATUS pancake_send_fragmented(struct pancake_main_dev *dev, uint8_t *raw_data, struct pancake_compressed_ip6_hdr *comp_hdr, uint8_t *payload, uint16_t payload_len)
 {
 	PANCSTATUS ret;
