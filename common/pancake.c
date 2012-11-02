@@ -2,6 +2,10 @@
 #include <stddef.h>
 #include <string.h>
 
+#if PANC_HAVE_PRINTF != 0
+#include <stdio.h>
+#endif
+
 #ifdef _WIN32
     #include <windows.h>
 #endif
@@ -28,6 +32,24 @@ struct pancake_main_dev {
 	read_callback_func		read_callback;
 };
 static struct pancake_main_dev devs[PANC_MAX_DEVICES];
+
+static void print_pancake_error(PANCSTATUS ret)
+{
+#if PANC_HAVE_PRINTF != 0
+	char * source = "pancake.c";
+	switch (ret) {
+	case PANCSTATUS_ERR:
+		printf("%s: Undefined error\n", source);
+		break;
+	case PANCSTATUS_NOMEM:
+		printf("%s: Not enough memory!\n", source);
+		break;
+	case PANCSTATUS_NOTREADY:
+		printf("%s: Not ready\n", source);
+		break;
+	}
+#endif
+}
 
 static uint16_t calculate_frame_overhead(struct pancake_main_dev *dev, struct pancake_compressed_ip6_hdr *hdr)
 {
@@ -59,6 +81,7 @@ struct pancake_frag_hdr {
 PANCSTATUS pancake_init(PANCHANDLE *handle, struct pancake_options_cfg *options_cfg, struct pancake_port_cfg *port_cfg, void *dev_data, read_callback_func read_callback)
 {
 	int8_t ret;
+	uint8_t i;
 	static uint8_t handle_count = 0;
 	struct pancake_main_dev *dev = &devs[handle_count];
 
@@ -68,6 +91,11 @@ PANCSTATUS pancake_init(PANCHANDLE *handle, struct pancake_options_cfg *options_
 	}
 	if (port_cfg->write_func == NULL) {
 		goto err_out;
+	}
+
+	/* Mark reassembly buffers as free */
+	for (i = 0; i < PANC_MAX_CONCURRENT_REASSEMBLIES; i++) {
+		ra_bufs[i].free = 1;
 	}
 
 	/* Initialize port */
@@ -220,7 +248,7 @@ PANCSTATUS pancake_process_data(void *dev_data, struct pancake_ieee_addr *src, s
 	struct ip6_hdr *hdr;
 	uint8_t *payload;
 	uint16_t payload_length;
-	PANCSTATUS ret;
+	PANCSTATUS ret = PANCSTATUS_ERR;
 	PANCHANDLE handle;
 	struct pancake_main_dev *dev;
 	struct pancake_reassembly_buffer *ra_buf = NULL;
@@ -228,7 +256,7 @@ PANCSTATUS pancake_process_data(void *dev_data, struct pancake_ieee_addr *src, s
 	/* Try to get handle */
 	handle = pancake_handle_from_dev_data(dev_data);
 	if (handle < 0) {
-		goto err_out;
+		goto out;
 	}
 	dev = &devs[handle];
 
@@ -245,31 +273,32 @@ PANCSTATUS pancake_process_data(void *dev_data, struct pancake_ieee_addr *src, s
 		switch (*data & 0xF8) {
 		case DISPATCH_FRAG1:
 		case DISPATCH_FRAGN:
-			ra_buf = pancake_reassemble(dev, src, dst, data, size);
-			if (ra_buf == NULL) {
-				goto err_out;
+			ret = pancake_reassemble(dev, &ra_buf, src, dst, data, size);
+			if (ret != PANCSTATUS_OK) {
+				goto out;
 			}
+
 			payload = ra_buf->data;
 			payload_length = (ra_buf->frag_hdr.size & 0x7FF);
 			break;
 		default:
 			if (*data & 0xC0 == DISPATCH_MESH) {
 				/* Not implemented yet */
-				goto err_out;
+				goto out;
 			}
 			else {
 				/* Not a LowPAN frame */
-				goto err_out;
+				goto out;
 			}
 		}
 	};
 
 	/* Relay data to upper levels */
 	dev->read_callback(hdr, payload, payload_length);
+	ret = PANCSTATUS_OK;
 
-	return PANCSTATUS_OK;
-err_out:
-	printf("pancake.c: Failed to process data\n");
-	return PANCSTATUS_ERR;
+out:
+	print_pancake_error(ret);
+	return ret;
 }
 

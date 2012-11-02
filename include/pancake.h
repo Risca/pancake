@@ -14,6 +14,8 @@ typedef int8_t PANCHANDLE;
 typedef enum {
 	PANCSTATUS_OK,
 	PANCSTATUS_ERR,
+	PANCSTATUS_NOMEM,
+	PANCSTATUS_NOTREADY,
 } PANCSTATUS;
 
 /* Placed here to avoid circular include */
