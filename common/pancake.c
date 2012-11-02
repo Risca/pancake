@@ -97,8 +97,8 @@ PANCSTATUS pancake_write_test(PANCHANDLE handle)
 	uint8_t ret;
 	struct pancake_main_dev	*dev = &devs[handle];
 	struct ip6_hdr hdr = {
-		//.ip6_flow	=	htonl(6 << 28),
-		//.ip6_plen	=	htons(255),
+		.ip6_flow	=	htonl(6 << 28),
+		.ip6_plen	=	htons(255),
 		.ip6_nxt	=	254,
 		.ip6_hops	=	2,
 		.ip6_src	=	{
@@ -250,7 +250,7 @@ PANCSTATUS pancake_process_data(void *dev_data, struct pancake_ieee_addr *src, s
 				goto err_out;
 			}
 			payload = ra_buf->data;
-			payload_length = ra_buf->frag_hdr.size;
+			payload_length = (ra_buf->frag_hdr.size & 0x7FF);
 			break;
 		default:
 			if (*data & 0xC0 == MESH) {
