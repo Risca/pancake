@@ -28,7 +28,7 @@ static void populate_dummy_ipv6_header(struct ip6_hdr *hdr, uint16_t payload_len
 	/* Loopback (::1/128) */
 	struct in6_addr addr = {
 			0, 0, 0, 0, 0, 0, 0, 0,
-			0, 0, 0, 0, 0, 0, 0, 1};
+			0, 0, 0, 0xff, 0xfe, 0, 0, 1};
 
 	hdr->ip6_flow	=	htonl(6 << 28);
 	hdr->ip6_plen	=	htons(payload_length);

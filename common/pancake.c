@@ -57,11 +57,11 @@ PANCSTATUS pancake_write_test(PANCHANDLE handle)
 		.ip6_flow	=	htonl(6 << 28),
 		.ip6_plen	=	htons(255),
 		.ip6_nxt	=	254,
-		.ip6_hops	=	2,
+		.ip6_hops	=	255,
 		.ip6_src	=	{
 			/* Loopback (::1/128) */
 			0, 0, 0, 0, 0, 0, 0, 0,
-			0, 0, 0, 0, 0, 0, 0, 1,
+			0, 0, 0, 0xff, 0xfe, 0, 0, 1,
 		},
 		.ip6_dst	=	{
 			/* Loopback (::1/128) */
@@ -118,10 +118,22 @@ PANCSTATUS pancake_send(PANCHANDLE handle, struct ip6_hdr *hdr, uint8_t *payload
 
 	// Test diff
 	struct ip6_hdr hdr2;
-	memcpy(&hdr2, hdr, sizeof(struct ip6_hdr));
+	//memcpy(&hdr2, hdr, sizeof(struct ip6_hdr));
 
-	hdr2.ip6_dst.s6_addr[3] = 3;
-	pancake_diff_header(hdr, &hdr2);
+	//hdr2.ip6_dst.s6_addr[3] = 3;
+	//pancake_diff_header(hdr, &hdr2);
+
+    // Decompress header into hdr2
+	ret = pancake_decompress_header(&compressed_ip6_hdr, &hdr2);
+	if (ret != PANCSTATUS_OK) {
+		printf("%s", "Error, failed with decompression\n");
+	}
+
+	// Diff headers
+	ret = pancake_diff_header(hdr, &hdr2);
+	if (ret == PANCSTATUS_OK) {
+        printf("%s", "Headers equal             [ OK ]\n");
+    }
 
 	//memcpy(data, hdr, 40);
 	memcpy(data + compressed_ip6_hdr.size, payload, payload_length);
