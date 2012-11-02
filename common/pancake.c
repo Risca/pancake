@@ -7,15 +7,15 @@
 #endif
 
 /* Updated to reflect RFC6282 */
-#define NALP        0x00
-#define ESC         0x40
-#define IPv6        0x41
-#define LOWPAN_HC1  0x42
-#define LOWPAN_BC0  0x50
-#define LOWPAN_IPHC 0x7F
-#define MESH        0x80
-#define FRAG1       0xC0
-#define FRAGN       0xE0
+#define DISPATCH_NALP        0x00
+#define DISPATCH_ESC         0x40
+#define DISPATCH_IPv6        0x41
+#define DISPATCH_HC1  0x42
+#define DISPATCH_BC0  0x50
+#define DISPATCH_IPHC 0x7F
+#define DISPATCH_MESH        0x80
+#define DISPATCH_FRAG1       0xC0
+#define DISPATCH_FRAGN       0xE0
 
 /* None, 32 bit, 64 bit, 128 bit */
 uint16_t security_overhead[] = 
@@ -161,7 +161,7 @@ PANCSTATUS pancake_send(PANCHANDLE handle, struct ip6_hdr *hdr, uint8_t *payload
 	case PANC_COMPRESSION_NONE:
 		compressed_ip6_hdr.hdr_data = (uint8_t *)hdr;
 		compressed_ip6_hdr.size = 40;
-		compressed_ip6_hdr.dispatch_value = IPv6;
+		compressed_ip6_hdr.dispatch_value = DISPATCH_IPv6;
 		break;
 	default:
 		/* Not supported... yet */
@@ -234,17 +234,17 @@ PANCSTATUS pancake_process_data(void *dev_data, struct pancake_ieee_addr *src, s
 
 	/* Read dispatch value */
 	switch (*data) {
-	case IPv6:
+	case DISPATCH_IPv6:
 		payload = data + 1 + 40;
 		payload_length = size - (1 + 40);
 		break;
-	case LOWPAN_HC1:
-	case LOWPAN_BC0:
-	case LOWPAN_IPHC:
+	case DISPATCH_HC1:
+	case DISPATCH_BC0:
+	case DISPATCH_IPHC:
 	default:
 		switch (*data & 0xF8) {
-		case FRAG1:
-		case FRAGN:
+		case DISPATCH_FRAG1:
+		case DISPATCH_FRAGN:
 			ra_buf = pancake_reassemble(dev, src, dst, data, size);
 			if (ra_buf == NULL) {
 				goto err_out;
@@ -253,7 +253,7 @@ PANCSTATUS pancake_process_data(void *dev_data, struct pancake_ieee_addr *src, s
 			payload_length = (ra_buf->frag_hdr.size & 0x7FF);
 			break;
 		default:
-			if (*data & 0xC0 == MESH) {
+			if (*data & 0xC0 == DISPATCH_MESH) {
 				/* Not implemented yet */
 				goto err_out;
 			}

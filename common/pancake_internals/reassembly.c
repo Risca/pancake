@@ -1,32 +1,47 @@
 #include <stdio.h>
 
 #if PANC_TESTS_ENABLED != 0
-static uint8_t fragmented_packet[3][102] = {{
-	FRAG1,0xF0,0x00,0x01,/* Fragmentation header */
-	IPv6,                /* IPv6 dispatch byte */
-	6<<4,0x00,0x00,0x00, /* Raw IPv6 header */
-	0x00,0xC8,0xFE,0x02,
-	0x00,0x00,0x00,0x00, /* Source address (localhost) */
-	0x00,0x00,0x00,0x00,
-	0x00,0x00,0x00,0x00,
-	0x00,0x00,0x00,0x01,
-	0x00,0x00,0x00,0x00, /* Destination address (localhost) */
-	0x00,0x00,0x00,0x00,
-	0x00,0x00,0x00,0x00,
-	0x00,0x00,0x00,0x01,
-	},{
-	FRAGN,0xF0,0x00,0x01,/* Fragmentation header */
-	0x61,                /* Offset */
-	},{
-	FRAGN,0xF0,0x00,0x01,/* Fragmentation header */
-	0xC2,                /* Offset */
-	}};
+static uint8_t fragmented_packet[3][102];
 
-void populate_fragmented_packet()
+void populate_fragmented_packets()
 {
 	uint8_t i;
 	uint8_t payload = 0;
+	struct pancake_frag_hdr *frag_hdr;
+	struct ip6_hdr *ip6;
+	
+	/* Fill in fragmentation headers */
+	frag_hdr = (struct pancake_frag_hdr *) &fragmented_packet[0][0];
+	frag_hdr->size = htons(240 | (DISPATCH_FRAG1 << 8));
+	frag_hdr->tag = htons(1);
 
+	frag_hdr = (struct pancake_frag_hdr *) &fragmented_packet[1][0];
+	frag_hdr->size = htons(240 | (DISPATCH_FRAGN << 8));
+	frag_hdr->tag = htons(1);
+	frag_hdr->offset = 0x61;
+
+	frag_hdr = (struct pancake_frag_hdr *) &fragmented_packet[2][0];
+	frag_hdr->size = htons(240 | (DISPATCH_FRAGN << 8));
+	frag_hdr->tag = htons(1);
+	frag_hdr->offset = 0xC2;
+
+	/* Fill in IPv6 header */
+	fragmented_packet[0][4] = DISPATCH_IPv6;
+	ip6 = (struct ip6_hdr *) &fragmented_packet[0][5];
+	ip6->ip6_flow = htonl(6 << 28);
+	ip6->ip6_plen = htons(255);
+	ip6->ip6_nxt  = 254;
+	ip6->ip6_hops = 2;
+	for (i = 0; i < 15; i++) {
+		ip6->ip6_src.s6_addr[i] = 0;
+	}
+	ip6->ip6_src.s6_addr[i] = 1;
+	for (i = 0; i < 15; i++) {
+		ip6->ip6_dst.s6_addr[i] = 0;
+	}
+	ip6->ip6_dst.s6_addr[i] = 1;
+
+	/* Fill in payload */
 	for (i = 45; i < 102; i++) {
 		fragmented_packet[0][i] = payload++;
 	}
@@ -64,7 +79,7 @@ static struct pancake_frag_hdr * to_pancake_frag_hdr(uint8_t *raw)
 	hdr->tag	=	ntohs(hdr->tag);
 
 	dispatch_value = ((hdr->size >> 8) & 0xF8);
-	if (dispatch_value != FRAG1 && dispatch_value != FRAGN) {
+	if (dispatch_value != DISPATCH_FRAG1 && dispatch_value != DISPATCH_FRAGN) {
 		goto err_out;
 	}
 
@@ -87,7 +102,7 @@ static struct pancake_reassembly_buffer * find_reassembly_buffer(struct pancake_
 
 	/* Check what kind of fragmentation packet this is */
 	dispatch_value = ((frag_hdr->size >> 8) & 0xF8);
-	if (dispatch_value == FRAG1) {
+	if (dispatch_value == DISPATCH_FRAG1) {
 		for (i = 0; i < PANC_MAX_CONCURRENT_REASSEMBLIES; i++) {
 			if (ra_bufs[i].active == 0) {
 				/* Setup a fresh reassembly buffer */
@@ -98,11 +113,12 @@ static struct pancake_reassembly_buffer * find_reassembly_buffer(struct pancake_
 				ra_bufs[i].octets_received = 0;
 				ra_bufs[i].active = 1;
 				buf = &ra_bufs[i];
+				printf("Used new buffer!\n");
 				break;
 			}
 		}
 	}
-	/* FRAGN */
+	/* DISPATCH_FRAGN */
 	else {
 		/* Check for existing buffer */
 		for (i = 0; i < PANC_MAX_CONCURRENT_REASSEMBLIES; i++) {
@@ -183,7 +199,7 @@ static struct pancake_reassembly_buffer * pancake_reassemble(struct pancake_main
 	}
 
 	/* Copy data */
-	if (frag_dispatch == FRAG1) {
+	if (frag_dispatch == DISPATCH_FRAG1) {
 		memcpy(&buf->data[0], (data+5), data_length);
 	}
 	else {
@@ -217,17 +233,26 @@ PANCSTATUS pancake_reassembly_test(PANCHANDLE handle)
 		},
 		.addr_mode = PANCAKE_IEEE_ADDR_MODE_EXTENDED,
 	};
-	populate_fragmented_packet();
-
 	printf("reassembly.c: Initiating reassembly test\n");
+
+	populate_fragmented_packets();
 	pancake_process_data(dev->dev_data, &addr, &addr, fragmented_packet[0], 102);
+	/* process_data alters our data, repopulate it */
+	populate_fragmented_packets();
+	/* change tag number for first fragmented packet */
+	fragmented_packet[0][3] = 2;
+	pancake_process_data(dev->dev_data, &addr, &addr, fragmented_packet[0], 102);
+	/* tag == 1 for 2nd and 3rd packet still */
 	pancake_process_data(dev->dev_data, &addr, &addr, fragmented_packet[1], 102);
 	pancake_process_data(dev->dev_data, &addr, &addr, fragmented_packet[2], 51);
-#if 0
-	dev->cfg->write_func(dev->dev_data, NULL, fragmented_packet[0], 102);
-	dev->cfg->write_func(dev->dev_data, NULL, fragmented_packet[1], 102);
-	dev->cfg->write_func(dev->dev_data, NULL, fragmented_packet[2], 51);
-#endif
+	/* repopulate 2nd and 3rd (and 1st) packet again */
+	populate_fragmented_packets();
+	/* change tag */
+	fragmented_packet[1][3] = 2;
+	fragmented_packet[2][3] = 2;
+	pancake_process_data(dev->dev_data, &addr, &addr, fragmented_packet[1], 102);
+	pancake_process_data(dev->dev_data, &addr, &addr, fragmented_packet[2], 51);
+
 	return PANCSTATUS_OK;
 err_out:
 	return PANCSTATUS_ERR;
