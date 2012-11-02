@@ -11,6 +11,7 @@
 #endif
 #include <netinet/in.h>
 #include <netinet/ip6.h>
+#include <helpers.h>
 
 static PANCSTATUS linux_init_func(void *dev_data);
 static PANCSTATUS linux_write_func(void *dev_data, struct pancake_ieee_addr *dest, uint8_t *data, uint16_t length);
@@ -22,6 +23,48 @@ struct pancake_port_cfg linux_cfg = {
     .write_func = linux_write_func,
 	.destroy_func = linux_destroy_func,
 };
+
+void pancake_print_raw_bits(FILE *out, uint8_t *bytes, size_t length)
+{
+	uint8_t bit;
+	uint16_t i;
+	uint8_t j;
+
+	if (bytes == NULL) {
+		return;
+	}
+
+	if (out == NULL) {
+		out = stdout;
+	}
+
+	fputs("+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+\n", out);
+	for (i=0; i < length; i++) {
+		fprintf(out, "|");
+		for (j=0; j < 8; j++) {
+			bit = ( (*bytes) >> (7-j%8) ) & 0x01;
+			fprintf(out, "%i", bit);
+
+			/* Place a space between every bit except last */
+			if (j != 7) {
+				fprintf(out, " ");
+			}
+		}
+
+		if ( (i+1) % 4 == 0 ) {
+			fputs("|\n", out);
+			fputs("+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+\n", out);
+		}
+		bytes++;
+	}
+	if (length % 4 != 0) {
+		fputs("|\n+", out);
+		for (i=0; i < length % 4; i++) {
+			fputs("-+-+-+-+-+-+-+-+", out);
+		}
+		fputs("\n", out);
+	}
+}
 
 static void populate_dummy_ipv6_header(struct ip6_hdr *hdr, uint16_t payload_length)
 {
@@ -112,32 +155,7 @@ static PANCSTATUS linux_write_func(void *dev_data, struct pancake_ieee_addr *des
 	FILE *out = (FILE*)dev_data;
 
 	fputs("linux.c: Transmitting the following packet to the ether:\n", out);
-	fputs("+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+\n", out);
-	for (i=0; i < length; i++) {
-		fprintf(out, "|");
-		for (j=0; j < 8; j++) {
-			bit = ( (*data) >> (7-j%8) ) & 0x01;
-			fprintf(out, "%i", bit);
-
-			/* Place a space between every bit except last */
-			if (j != 7) {
-				fprintf(out, " ");
-			}
-		}
-
-		if ( (i+1) % 4 == 0 ) {
-			fputs("|\n", out);
-			fputs("+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+\n", out);
-		}
-		data++;
-	}
-	if (length % 4 != 0) {
-		fputs("|\n+", out);
-		for (i=0; i < length % 4; i++) {
-			fputs("-+-+-+-+-+-+-+-+", out);
-		}
-		fputs("\n", out);
-	}
+	pancake_print_raw_bits(out, data, length);
 
 	return PANCSTATUS_OK;
 err_out:
