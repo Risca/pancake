@@ -12,16 +12,16 @@ void populate_fragmented_packets()
 	/* Fill in fragmentation headers */
 	frag_hdr = (struct pancake_frag_hdr *) &fragmented_packet[0][0];
 	frag_hdr->size = htons(240 | (DISPATCH_FRAG1 << 8));
-	frag_hdr->tag = htons(1);
+	frag_hdr->tag = 0;
 
 	frag_hdr = (struct pancake_frag_hdr *) &fragmented_packet[1][0];
 	frag_hdr->size = htons(240 | (DISPATCH_FRAGN << 8));
-	frag_hdr->tag = htons(1);
+	frag_hdr->tag = 0;
 	frag_hdr->offset = 0x61;
 
 	frag_hdr = (struct pancake_frag_hdr *) &fragmented_packet[2][0];
 	frag_hdr->size = htons(240 | (DISPATCH_FRAGN << 8));
-	frag_hdr->tag = htons(1);
+	frag_hdr->tag = 0;
 	frag_hdr->offset = 0xC2;
 
 	/* Fill in IPv6 header */
@@ -222,6 +222,7 @@ static PANCSTATUS pancake_reassemble(struct pancake_main_dev *dev, struct pancak
 	/* Buffer fully populated, return it and mark it free */
 	buf->free = 1;
 	*ra_buf = buf;
+
 	return PANCSTATUS_OK;
 err_out:
 	return PANCSTATUS_ERR;
@@ -230,8 +231,11 @@ err_out:
 #if PANC_TESTS_ENABLED != 0
 PANCSTATUS pancake_reassembly_test(PANCHANDLE handle)
 {
-	PANCSTATUS ret;
+	PANCSTATUS ret = PANCSTATUS_ERR;
+	uint8_t i;
+	int res;
 	struct pancake_main_dev *dev = &devs[handle];
+	struct pancake_reassembly_buffer *buf;
 	struct pancake_ieee_addr addr = {
 		.ieee_ext = {
 			0x00,0x00,0x00,0x00,
@@ -243,26 +247,55 @@ PANCSTATUS pancake_reassembly_test(PANCHANDLE handle)
 	printf("reassembly.c: Initiating reassembly test\n");
 #endif
 
-	populate_fragmented_packets();
-	pancake_process_data(dev->dev_data, &addr, &addr, fragmented_packet[0], 102);
-	/* process_data alters our data, repopulate it */
-	populate_fragmented_packets();
-	/* change tag number for first fragmented packet */
-	fragmented_packet[0][3] = 2;
-	pancake_process_data(dev->dev_data, &addr, &addr, fragmented_packet[0], 102);
-	/* tag == 1 for 2nd and 3rd packet still */
-	pancake_process_data(dev->dev_data, &addr, &addr, fragmented_packet[1], 102);
-	pancake_process_data(dev->dev_data, &addr, &addr, fragmented_packet[2], 51);
-	/* repopulate 2nd and 3rd (and 1st) packet again */
-	populate_fragmented_packets();
-	/* change tag */
-	fragmented_packet[1][3] = 2;
-	fragmented_packet[2][3] = 2;
-	pancake_process_data(dev->dev_data, &addr, &addr, fragmented_packet[1], 102);
-	pancake_process_data(dev->dev_data, &addr, &addr, fragmented_packet[2], 51);
+	/* Memory test */
+	for (i = 0; i < PANC_MAX_CONCURRENT_REASSEMBLIES; i++) {
+		/* Start fresh and change tag (LSB) */
+		populate_fragmented_packets();
+		fragmented_packet[0][3] = i;
+
+		ret = pancake_reassemble(dev, &buf, &addr, &addr, fragmented_packet[0], 102);
+		if (ret == PANCSTATUS_NOMEM || ret == PANCSTATUS_ERR) {
+			goto err_out;
+		}
+	}
+
+	/* Reassemble all packets */
+	for (i = 0; i < PANC_MAX_CONCURRENT_REASSEMBLIES; i++) {
+		/* Start fresh and change tag (LSB) */
+		populate_fragmented_packets();
+		fragmented_packet[1][3] = i;
+		fragmented_packet[2][3] = i;
+
+		/* Check middle packet reassembly */
+		ret = pancake_reassemble(dev, &buf, &addr, &addr, fragmented_packet[1], 102);
+		if (ret != PANCSTATUS_NOTREADY) {
+			goto err_out;
+		}
+
+		/* Check last packet reassembly */
+		ret = pancake_reassemble(dev, &buf, &addr, &addr, fragmented_packet[2], 51);
+		if (ret != PANCSTATUS_OK) {
+			goto err_out;
+		}
+
+		/* Check data */
+		ret = PANCSTATUS_ERR;
+		res = memcmp(buf->data, &fragmented_packet[0][5], 97);
+		if (res != 0) {
+			goto err_out;
+		}
+		res = memcmp(buf->data + 97, &fragmented_packet[1][5], 97);
+		if (res != 0) {
+			goto err_out;
+		}
+		res = memcmp(buf->data + 2*97, &fragmented_packet[2][5], 46);
+		if (res != 0) {
+			goto err_out;
+		}
+	}
 
 	return PANCSTATUS_OK;
 err_out:
-	return PANCSTATUS_ERR;
+	return ret;
 }
 #endif

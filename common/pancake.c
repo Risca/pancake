@@ -14,9 +14,9 @@
 #define DISPATCH_NALP        0x00
 #define DISPATCH_ESC         0x40
 #define DISPATCH_IPv6        0x41
-#define DISPATCH_HC1  0x42
-#define DISPATCH_BC0  0x50
-#define DISPATCH_IPHC 0x7F
+#define DISPATCH_HC1         0x42
+#define DISPATCH_BC0         0x50
+#define DISPATCH_IPHC        0x7F
 #define DISPATCH_MESH        0x80
 #define DISPATCH_FRAG1       0xC0
 #define DISPATCH_FRAGN       0xE0
@@ -55,11 +55,6 @@ static uint16_t calculate_frame_overhead(struct pancake_main_dev *dev, struct pa
 {
 	uint16_t overhead = 0;
 	struct pancake_options_cfg *options = dev->options;
-
-#if 0
-	/* Link layer overhead (might not be needed) */
-	overhead += aMaxFrameOverhead;
-#endif 
 
 	/* Overhead due to security */
 	overhead += security_overhead[options->security];
