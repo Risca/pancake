@@ -293,6 +293,7 @@ PANCSTATUS pancake_reassembly_test(PANCHANDLE handle)
 		}
 	}
 
+	pancake_printf("pancake_reassembly_test(): Reassembly test successful\n");
 	return PANCSTATUS_OK;
 err_out:
 	return ret;
