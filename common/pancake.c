@@ -33,22 +33,25 @@ struct pancake_main_dev {
 };
 static struct pancake_main_dev devs[PANC_MAX_DEVICES];
 
-static void print_pancake_error(PANCSTATUS ret)
-{
 #if PANC_HAVE_PRINTF != 0
-	char * source = "pancake.c";
+#define pancake_printf(...) printf(__VA_ARGS__)
+#else
+#define pancake_printf(...) {}
+#endif
+
+static void print_pancake_error(char *source, PANCSTATUS ret)
+{
 	switch (ret) {
 	case PANCSTATUS_ERR:
-		printf("%s: Undefined error\n", source);
+		pancake_printf("%s: Undefined error\n", source);
 		break;
 	case PANCSTATUS_NOMEM:
-		printf("%s: Not enough memory!\n", source);
+		pancake_printf("%s: Not enough memory!\n", source);
 		break;
 	case PANCSTATUS_NOTREADY:
-		printf("%s: Not ready\n", source);
+		pancake_printf("%s: Not ready\n", source);
 		break;
 	}
-#endif
 }
 
 static uint16_t calculate_frame_overhead(struct pancake_main_dev *dev, struct pancake_compressed_ip6_hdr *hdr)
@@ -293,7 +296,7 @@ PANCSTATUS pancake_process_data(void *dev_data, struct pancake_ieee_addr *src, s
 	ret = PANCSTATUS_OK;
 
 out:
-	print_pancake_error(ret);
+	print_pancake_error("pancake_process_data()", ret);
 	return ret;
 }
 

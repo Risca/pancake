@@ -243,9 +243,8 @@ PANCSTATUS pancake_reassembly_test(PANCHANDLE handle)
 		},
 		.addr_mode = PANCAKE_IEEE_ADDR_MODE_EXTENDED,
 	};
-#if PANC_HAVE_PRINTF != 0
-	printf("reassembly.c: Initiating reassembly test\n");
-#endif
+
+	pancake_printf("pancake_reassembly_test(): Initiating reassembly test\n");
 
 	/* Memory test */
 	for (i = 0; i < PANC_MAX_CONCURRENT_REASSEMBLIES; i++) {
