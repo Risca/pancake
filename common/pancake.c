@@ -2,9 +2,28 @@
 #include <stddef.h>
 #include <string.h>
 
+#if PANC_HAVE_PRINTF != 0
+#include <stdio.h>
+#endif
+
 #ifdef _WIN32
     #include <windows.h>
 #endif
+
+/* Updated to reflect RFC6282 */
+#define DISPATCH_NALP        0x00
+#define DISPATCH_ESC         0x40
+#define DISPATCH_IPv6        0x41
+#define DISPATCH_HC1         0x42
+#define DISPATCH_BC0         0x50
+#define DISPATCH_IPHC        0x7F
+#define DISPATCH_MESH        0x80
+#define DISPATCH_FRAG1       0xC0
+#define DISPATCH_FRAGN       0xE0
+
+/* None, 32 bit, 64 bit, 128 bit */
+uint16_t security_overhead[] = 
+	{0, 9, 13, 21};
 
 struct pancake_main_dev {
 	struct pancake_port_cfg		*cfg;
@@ -14,9 +33,53 @@ struct pancake_main_dev {
 };
 static struct pancake_main_dev devs[PANC_MAX_DEVICES];
 
+#if PANC_HAVE_PRINTF != 0
+#define pancake_printf(...) printf(__VA_ARGS__)
+#else
+#define pancake_printf(...) {}
+#endif
+
+static void print_pancake_error(char *source, PANCSTATUS ret)
+{
+	switch (ret) {
+	case PANCSTATUS_ERR:
+		pancake_printf("%s: Undefined error\n", source);
+		break;
+	case PANCSTATUS_NOMEM:
+		pancake_printf("%s: Not enough memory!\n", source);
+		break;
+	case PANCSTATUS_NOTREADY:
+		pancake_printf("%s: Not ready\n", source);
+		break;
+	}
+}
+
+static uint16_t calculate_frame_overhead(struct pancake_main_dev *dev, struct pancake_compressed_ip6_hdr *hdr)
+{
+	uint16_t overhead = 0;
+	struct pancake_options_cfg *options = dev->options;
+
+	/* Overhead due to security */
+	overhead += security_overhead[options->security];
+
+	/* Compression overhead (+1 dispatch byte) */
+	overhead += hdr->size + 1;
+
+	return overhead;
+}
+
+struct pancake_frag_hdr {
+	uint16_t size;
+	uint16_t tag;
+	uint8_t offset;
+};
+#include "pancake_internals/fragmentation.c"
+#include "pancake_internals/reassembly.c"
+
 PANCSTATUS pancake_init(PANCHANDLE *handle, struct pancake_options_cfg *options_cfg, struct pancake_port_cfg *port_cfg, void *dev_data, read_callback_func read_callback)
 {
 	int8_t ret;
+	uint8_t i;
 	static uint8_t handle_count = 0;
 	struct pancake_main_dev *dev = &devs[handle_count];
 
@@ -26,6 +89,11 @@ PANCSTATUS pancake_init(PANCHANDLE *handle, struct pancake_options_cfg *options_
 	}
 	if (port_cfg->write_func == NULL) {
 		goto err_out;
+	}
+
+	/* Mark reassembly buffers as free */
+	for (i = 0; i < PANC_MAX_CONCURRENT_REASSEMBLIES; i++) {
+		ra_bufs[i].free = 1;
 	}
 
 	/* Initialize port */
@@ -49,13 +117,14 @@ err_out:
 	return PANCSTATUS_ERR;
 }
 
+#if PANC_TESTS_ENABLED != 0
 PANCSTATUS pancake_write_test(PANCHANDLE handle)
 {
 	uint8_t ret;
 	struct pancake_main_dev	*dev = &devs[handle];
 	struct ip6_hdr hdr = {
-		//.ip6_flow	=	htonl(6 << 28),
-		//.ip6_plen	=	htons(255),
+		.ip6_flow	=	htonl(6 << 28),
+		.ip6_plen	=	htons(255),
 		.ip6_nxt	=	254,
 		.ip6_hops	=	2,
 		.ip6_src	=	{
@@ -82,6 +151,7 @@ PANCSTATUS pancake_write_test(PANCHANDLE handle)
 err_out:
 	return PANCSTATUS_ERR;
 }
+#endif
 
 void pancake_destroy(PANCHANDLE handle)
 {
@@ -96,9 +166,12 @@ void pancake_destroy(PANCHANDLE handle)
 
 PANCSTATUS pancake_send(PANCHANDLE handle, struct ip6_hdr *hdr, uint8_t *payload, uint16_t payload_length)
 {
-	uint8_t data[127];
+	uint8_t i;
+	uint8_t raw_data[aMaxPHYPacketSize - aMaxFrameOverhead];
 	uint16_t length;
 	struct pancake_main_dev *dev;
+	struct pancake_compressed_ip6_hdr compressed_ip6_hdr;
+	uint16_t frame_overhead;
 	PANCSTATUS ret;
 
 	/* Sanity check */
@@ -110,14 +183,39 @@ PANCSTATUS pancake_send(PANCHANDLE handle, struct ip6_hdr *hdr, uint8_t *payload
 	}
 	dev = &devs[handle];
 
-	/* Below this point we assume a lot! */
-	memcpy(data, hdr, 40);
-	memcpy(data+40, payload, payload_length);
-	length = 40 + payload_length;
-
-	ret = dev->cfg->write_func(dev->dev_data, NULL, data, length);
-	if (ret != PANCSTATUS_OK) {
+	switch (dev->options->compression) {
+	case PANC_COMPRESSION_NONE:
+		compressed_ip6_hdr.hdr_data = (uint8_t *)hdr;
+		compressed_ip6_hdr.size = 40;
+		compressed_ip6_hdr.dispatch_value = DISPATCH_IPv6;
+		break;
+	default:
+		/* Not supported... yet */
 		goto err_out;
+	}
+
+	/* Check if fragmentation is needed */
+	frame_overhead = calculate_frame_overhead(dev, &compressed_ip6_hdr);
+	if (frame_overhead + aMaxFrameOverhead + payload_length > aMaxPHYPacketSize) {
+		/* pancake_send_fragmented() sends the whole payload, but in multiple packets */
+		ret = pancake_send_fragmented(dev, raw_data, &compressed_ip6_hdr, payload, payload_length);
+		if (ret != PANCSTATUS_OK) {
+			goto err_out;
+		}
+	}
+	/* Packet fits inside a single packet, copy header and payload to raw_data and send */
+	else {
+		/* Dispatch value */
+		*raw_data = compressed_ip6_hdr.dispatch_value;
+		/* Copy header and data */
+		memcpy((void*)(raw_data + 1), (void*)compressed_ip6_hdr.hdr_data, compressed_ip6_hdr.size);
+		memcpy((void*)(raw_data + compressed_ip6_hdr.size + 1), (void*)payload, payload_length);
+
+		length = frame_overhead+payload_length;
+		ret = dev->cfg->write_func(dev->dev_data, NULL, raw_data, length);
+		if (ret != PANCSTATUS_OK) {
+			goto err_out;
+		}
 	}
 
 	return PANCSTATUS_OK;
@@ -143,33 +241,62 @@ static PANCHANDLE pancake_handle_from_dev_data(void *dev_data)
 	return -1;
 }
 
-#include <stdio.h>
-PANCSTATUS pancake_process_data(void *dev_data, uint8_t *data, uint16_t size)
+PANCSTATUS pancake_process_data(void *dev_data, struct pancake_ieee_addr *src, struct pancake_ieee_addr *dst, uint8_t *data, uint16_t size)
 {
 	struct ip6_hdr *hdr;
 	uint8_t *payload;
 	uint16_t payload_length;
-	PANCSTATUS ret;
+	PANCSTATUS ret = PANCSTATUS_ERR;
 	PANCHANDLE handle;
 	struct pancake_main_dev *dev;
+	struct pancake_reassembly_buffer *ra_buf = NULL;
 
 	/* Try to get handle */
 	handle = pancake_handle_from_dev_data(dev_data);
 	if (handle < 0) {
-		goto err_out;
+		goto out;
 	}
 	dev = &devs[handle];
 
-	/* From this point on, we assume a lot! */
-	hdr = (struct ip6_hdr *)data;
-	payload = data+40;
-	payload_length = size-40;
+	/* Read dispatch value */
+	switch (*data) {
+	case DISPATCH_IPv6:
+		payload = data + 1 + 40;
+		payload_length = size - (1 + 40);
+		break;
+	case DISPATCH_HC1:
+	case DISPATCH_BC0:
+	case DISPATCH_IPHC:
+	default:
+		switch (*data & 0xF8) {
+		case DISPATCH_FRAG1:
+		case DISPATCH_FRAGN:
+			ret = pancake_reassemble(dev, &ra_buf, src, dst, data, size);
+			if (ret != PANCSTATUS_OK) {
+				goto out;
+			}
+
+			payload = ra_buf->data;
+			payload_length = (ra_buf->frag_hdr.size & 0x7FF);
+			break;
+		default:
+			if (*data & 0xC0 == DISPATCH_MESH) {
+				/* Not implemented yet */
+				goto out;
+			}
+			else {
+				/* Not a LowPAN frame */
+				goto out;
+			}
+		}
+	};
 
 	/* Relay data to upper levels */
 	dev->read_callback(hdr, payload, payload_length);
+	ret = PANCSTATUS_OK;
 
-	return PANCSTATUS_OK;
-err_out:
-	return PANCSTATUS_ERR;
+out:
+	print_pancake_error("pancake_process_data()", ret);
+	return ret;
 }
 

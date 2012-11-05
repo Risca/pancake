@@ -11,6 +11,7 @@
 #endif
 #include <netinet/in.h>
 #include <netinet/ip6.h>
+#include <helpers.h>
 
 static PANCSTATUS linux_init_func(void *dev_data);
 static PANCSTATUS linux_write_func(void *dev_data, struct pancake_ieee_addr *dest, uint8_t *data, uint16_t length);
@@ -22,6 +23,48 @@ struct pancake_port_cfg linux_cfg = {
     .write_func = linux_write_func,
 	.destroy_func = linux_destroy_func,
 };
+
+void pancake_print_raw_bits(FILE *out, uint8_t *bytes, size_t length)
+{
+	uint8_t bit;
+	uint16_t i;
+	uint8_t j;
+
+	if (bytes == NULL) {
+		return;
+	}
+
+	if (out == NULL) {
+		out = stdout;
+	}
+
+	fputs("+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+\n", out);
+	for (i=0; i < length; i++) {
+		fprintf(out, "|");
+		for (j=0; j < 8; j++) {
+			bit = ( (*bytes) >> (7-j%8) ) & 0x01;
+			fprintf(out, "%i", bit);
+
+			/* Place a space between every bit except last */
+			if (j != 7) {
+				fprintf(out, " ");
+			}
+		}
+
+		if ( (i+1) % 4 == 0 ) {
+			fputs("|\n", out);
+			fputs("+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+\n", out);
+		}
+		bytes++;
+	}
+	if (length % 4 != 0) {
+		fputs("|\n+", out);
+		for (i=0; i < length % 4; i++) {
+			fputs("-+-+-+-+-+-+-+-+", out);
+		}
+		fputs("\n", out);
+	}
+}
 
 static void populate_dummy_ipv6_header(struct ip6_hdr *hdr, uint16_t payload_length)
 {
@@ -49,15 +92,19 @@ pthread_t my_thread;
 static void linux_read_thread(void *dev_data)
 {
 	uint8_t i, timeout = 1;
-	uint8_t data[127];
-	uint16_t length = 42;
+	uint8_t data[127*3];
+	uint16_t length = 1 + 40 + 2;
 	PANCSTATUS ret;
 	FILE 			*out 		= (FILE *)dev_data;
-	struct ip6_hdr 	*hdr 		= (struct ip6_hdr *)data;
-	uint8_t			*payload	= data+40;
+	struct ip6_hdr 	*hdr 		= (struct ip6_hdr *)(data+1);
+	uint8_t			*payload	= data + 1 + 40;
 
-	/* Send 10 packets with 5 seconds delay */
-	for (i=0; i < 10; i++) {
+	/* Raw IPv6 packet dispatch value */
+	data[0] = 0x41;
+
+#if 0
+	/* Send 3 packets with 1 seconds delay */
+	for (i=0; i < 3; i++) {
 		*payload = i;
 		*(payload+1) = 255-i;
 		populate_dummy_ipv6_header(hdr, 2);
@@ -67,11 +114,26 @@ static void linux_read_thread(void *dev_data)
 		sleep(timeout);
 #endif
 		fprintf(out, "linux.c: Patching incoming packet to pancake_process_data()\n");
-		ret = pancake_process_data(dev_data, data, length);
+		ret = pancake_process_data(dev_data, NULL, NULL, data, length);
 		if (ret != PANCSTATUS_OK) {
 			/* What to do, what to do? */
 		}
 	}
+#endif
+
+#if 0
+	/* Send 1 big packet */
+	for (i=0; i < 200; i++) {
+		*payload++ = (uint8_t)i;
+	}
+	populate_dummy_ipv6_header(hdr, 200);
+	length = 200 + 1 + 40;
+	fprintf(out, "linux.c: Patching incoming packet to pancake_process_data()\n");
+	ret = pancake_process_data(dev_data, NULL, NULL, data, length);
+	if (ret != PANCSTATUS_OK) {
+		/* What to do, what to do? */
+	}
+#endif
 }
 
 static PANCSTATUS linux_init_func(void *dev_data)
@@ -93,32 +155,7 @@ static PANCSTATUS linux_write_func(void *dev_data, struct pancake_ieee_addr *des
 	FILE *out = (FILE*)dev_data;
 
 	fputs("linux.c: Transmitting the following packet to the ether:\n", out);
-	fputs("+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+\n", out);
-	for (i=0; i < length; i++) {
-		fprintf(out, "|");
-		for (j=0; j < 8; j++) {
-			bit = ( (*data) >> (7-j%8) ) & 0x01;
-			fprintf(out, "%i", bit);
-
-			/* Place a space between every bit except last */
-			if (j != 7) {
-				fprintf(out, " ");
-			}
-		}
-
-		if ( (i+1) % 4 == 0 ) {
-			fputs("|\n", out);
-			fputs("+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+\n", out);
-		}
-		data++;
-	}
-	if (length % 4 != 0) {
-		fputs("|\n+", out);
-		for (i=0; i < length % 4; i++) {
-			fputs("-+-+-+-+-+-+-+-+", out);
-		}
-		fputs("\n", out);
-	}
+	pancake_print_raw_bits(out, data, length);
 
 	return PANCSTATUS_OK;
 err_out:
