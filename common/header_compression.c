@@ -22,6 +22,7 @@ PANCSTATUS pancake_compress_header(struct ip6_hdr *hdr, struct pancake_compresse
     uint8_t traffic_class = ntohl(hdr->ip6_flow) >> 20; 	// bits 20-27
     uint8_t i;
     uint8_t ip_len = 16;
+    uint8_t ret;
     
     // Header is 2 Bytes in size
     compressed_hdr->size = 2;
@@ -111,52 +112,29 @@ PANCSTATUS pancake_compress_header(struct ip6_hdr *hdr, struct pancake_compresse
     *data &= ~(1 << 6); // Set SAC=0
     
     // Source address
-    switch(0x2) {
-    	// Full address copied to inline data
-    	case 0x0:
+    ret = compress_address(hdr->ip6_src, inline_data);
+	inline_data += ret;
+	compressed_hdr->size += ret;
+	
+	switch(ret) {
+		case 16:
 			*data &= ~(0x3 << 4); // Clear bits
-			
-			// Copy full adress to inline data
-			for(i = 0; i < ip_len; i += 1) {
-				*(inline_data + i) = hdr->ip6_src.s6_addr[i];
-			}
-			
-			compressed_hdr->size += ip_len;
 			break;
 			
-		// 64 bit adress inline
-		case 0x1:
+		case 8: 
 			*data &= ~(0x2 << 4);	// Clear bit 1
 			*data |= (0x1 << 4);	// Set bit 0
-			
-			// Copy the least 64 bits from adress to inline data
-			for(i = (ip_len/2); i < ip_len; i += 1) {
-				*inline_data = hdr->ip6_src.s6_addr[i];
-				inline_data++;
-			}
-			
-			compressed_hdr->size += (ip_len/2);	
 			break;
 			
-		// 16 bit adress inline
-		case 0x2:
-			// Source adress mode (16 bits address carried in line)
+		case 2:
 			*data |= (1 << 5);  // Set bit 5=1
 			*data &= ~(1 << 4); // Clear bit 4, -> 10
-
-			//Source address
-			*inline_data = hdr->ip6_src.s6_addr[14];
-			*(inline_data + 1) = hdr->ip6_src.s6_addr[15];
-			inline_data += 2;
-			compressed_hdr->size += 2;
 			break;
 			
-		// 0 bits adress inline
-		case 0x3:
+		case 0:
 			goto not_implemented;
 			break;
 	}
-    
     
 
     // Multicast Compression (destination is NOT an Multicast address) (M=0)
@@ -165,49 +143,27 @@ PANCSTATUS pancake_compress_header(struct ip6_hdr *hdr, struct pancake_compresse
     // Destination Address Compression DAC (DAC=0)
     *data &= ~(1 << 2); // Set DAC=0
     
-    // Destination adress
-    switch(0x2) {
-    	// Full address copied to inline data
-    	case 0x0:
+    // Destination address
+    ret = compress_address(hdr->ip6_dst, inline_data);
+	inline_data += ret;
+	compressed_hdr->size += ret;
+	
+	switch(ret) {
+		case 16:
 			*data &= ~(0x3 << 0); // Clear bits
-			
-			// Copy full adress to inline data
-			for(i = 0; i < ip_len; i += 1) {
-				*(inline_data + i) = hdr->ip6_dst.s6_addr[i];
-			}
-			
-			compressed_hdr->size += ip_len;
 			break;
 			
-		// 64 bit adress inline
-		case 0x1:
+		case 8: 
 			*data &= ~(0x2 << 0);	// Clear bit 1
 			*data |= (0x1 << 0);	// Set bit 0
-			
-			// Copy the least 64 bits from adress to inline data
-			for(i = (ip_len/2); i < ip_len; i += 1) {
-				*inline_data = hdr->ip6_dst.s6_addr[i];
-				inline_data++;
-			}
-			
-			compressed_hdr->size += (ip_len/2);	
 			break;
 			
-		// 16 bit adress inline
-		case 0x2:
-			// Destination Address Mode (16 bits address carried in line
+		case 2:
 			*data |= (1 << 1);  // Set bit 1=1
 			*data &= ~(1 << 0); // Clear bit 0, -> 10
-
-			// Destination address
-			*inline_data = hdr->ip6_dst.s6_addr[14];
-			*(inline_data + 1) = hdr->ip6_dst.s6_addr[15];
-			inline_data += 2;
-			compressed_hdr->size += 2;
 			break;
-			
-		// 0 bits adress inline
-		case 0x3:
+		
+		case 0:
 			goto not_implemented;
 			break;
 	}
@@ -573,4 +529,64 @@ PANCSTATUS pancake_diff_header(struct ip6_hdr *origin_hdr, struct ip6_hdr *decom
     }
 
     return status;
+}
+
+
+/**
+ * Compress ipv6 address
+ * @returns length of inline data in bytes
+ */
+static uint8_t compress_address(struct in6_addr address, uint8_t *inline_data) 
+{
+	uint8_t i;
+	
+    // Check if 64 first bits are link_local_prefix
+    for(i = 0; i < 8 ; i += 1) {
+		// Check if addresses are equal
+		if(link_local_prefix[i] != address.s6_addr[i]) {
+			// Must use full address
+			//*data &= ~(0x3 << 0); // Clear bits
+			
+			// Copy full adress to inline data
+			for(i = 0; i < 16; i += 1) {
+				*(inline_data + i) = address.s6_addr[i];
+			}
+			
+			printf("%s", "hello\n\n\n\n");
+			
+			return 16;
+		}
+	}
+	
+	// Check if next bits are same as below
+	if(
+		address.s6_addr[8] != 0x00 ||
+		address.s6_addr[9] != 0x00 ||
+		address.s6_addr[10] != 0x00 ||
+		address.s6_addr[11] != 0xff ||
+		address.s6_addr[12] != 0xfe ||
+		address.s6_addr[13] != 0x00
+	){	
+		// Must use 64 bits inline
+		//*data &= ~(0x2 << 0);	// Clear bit 1
+		//*data |= (0x1 << 0);	// Set bit 0
+		
+		// Copy the least 64 bits from adress to inline data
+		for(i = 8; i < 16; i += 1) {
+			*(inline_data + i - 8) = address.s6_addr[i];
+		}
+		
+		return 8;	
+	}
+	else {
+		// Destination Address Mode (16 bits address carried in line	// TODO, check if full address can be eligned
+		//*data |= (1 << 1);  // Set bit 1=1
+		//*data &= ~(1 << 0); // Clear bit 0, -> 10
+
+		// Destination address
+		*inline_data = address.s6_addr[14];
+		*(inline_data + 1) = address.s6_addr[15];
+		return 2;
+	}
+
 }
