@@ -19,77 +19,84 @@ PANCSTATUS pancake_compress_header(struct ip6_hdr *hdr, struct pancake_compresse
     // Build header
     uint8_t *data = compressed_hdr->hdr_data;
     uint8_t *inline_data = (data + 2);
-    uint8_t traffic_class = ntohl(hdr->ip6_flow) >> 20;
+    uint8_t traffic_class = ntohl(hdr->ip6_flow) >> 20; 	// bits 20-27
     
     // Header is 2 Bytes in size
     compressed_hdr->size = 2;
 
-    // IP v6 (first 3 bits)
+    // IP v6 (first 3 bits, 011)
     *data = (0x6 << 4);
     
     // Check traffic class
-    if ((traffic_class & (0x3 << 6)) > 0) {
-		// ECN is enabled
-		
-		// ECN + 2-bit Pad + Flow Label (3 bytes), DSCP is elided.				// TODO check for DSCP 
-		*data &= ~(0x2 << 3);
-		*data |= (0x1 << 3);	// 01
-		
-		// Put data inline
-		*inline_data = (uint8_t) (ntohl(hdr->ip6_flow) >> 16);
-		
-		// Set ECN bits
-		*inline_data |= (traffic_class & (0x3 << 6)) | 0x3f; // Mask and set all bits
-		*inline_data &= (traffic_class & (0x3 << 6)) & 0xc0; // Mask and clear all bits
-		
-		
-		// Next byte (flow label)
-		*inline_data &= 0xf0; // clear (4 bits)
-		*inline_data |= (uint8_t) (ntohl(hdr->ip6_flow) >> 12);
-		inline_data++;
-		
-		*inline_data = (uint8_t) (ntohl(hdr->ip6_flow) >> 8);
-		inline_data++;
-		
-		// Next byte (flow label)
-		*inline_data = (uint8_t) ntohl(hdr->ip6_flow);
-		inline_data++;
-		
-		compressed_hdr->size += 3;
-		
-	}
-	else {
+    switch(traffic_class & (0x3 << 6)){
 		// ECN disabled
+		case (0x0 << 6):
+			// TODO, check if DSP is used
+			
+			// Traffic Class and Flow Label are elided.
+			*data |= (0x3 << 3);
+			break;
 		
-		// TODO, check if DSP is used
-		
-		// Traffic Class and Flow Label are elided.
-		*data |= (0x3 << 3);
+		// ECN is enabled
+		case (0x1 << 6):
+		case (0x2 << 6):
+		case (0x3 << 6):
+			// ECN + 2-bit Pad + Flow Label (3 bytes), DSCP is elided.				// TODO check for DSCP 
+			*data &= ~(0x2 << 3);
+			*data |= (0x1 << 3);	// 01
+			
+			// Put data inline
+			*inline_data = (uint8_t) (ntohl(hdr->ip6_flow) >> 16);
+			
+			// Set ECN bits
+			*inline_data |= (traffic_class & (0x3 << 6)) | 0x3f; // Mask and set all bits
+			*inline_data &= (traffic_class & (0x3 << 6)) & 0xc0; // Mask and clear all bits
+			
+			
+			// Next byte (flow label)
+			*inline_data &= 0xf0; // clear (4 bits)
+			*inline_data |= (uint8_t) (ntohl(hdr->ip6_flow) >> 12);
+			inline_data++;
+			
+			*inline_data = (uint8_t) (ntohl(hdr->ip6_flow) >> 8);
+			inline_data++;
+			
+			// Next byte (flow label)
+			*inline_data = (uint8_t) ntohl(hdr->ip6_flow);
+			inline_data++;
+			
+			compressed_hdr->size += 3;
+			break;
 	}
-    
 
     // Next header (full 8-bits carried in-line)
-    *data &= ~(0x1 << 2); // 0 on 5:th bit                                                 // REMEMBER Carry in-line
-    *inline_data = 
-    inline_data++;
+    *data &= ~(0x1 << 2); // 0 on 5:th bit
+    
+    // Add inline data
+    *inline_data = hdr->ip6_nxt; 
+	inline_data++;
+	compressed_hdr->size += 1;
 
     // Hop limit
     switch(hdr->ip6_hlim) {
         case 255:
-            *data |= 0x3;   // 11
+            *data |= 0x3;   	// 11
             break;
         case 64:
             *data |= (1 << 1);
-            *data &= ~(1 << 0);  // 10
+            *data &= ~(1 << 0);	// 10
             break;
         case 1:
             *data &= ~(1 << 1);
-            *data |= (1 << 0);   // 01
+            *data |= (1 << 0);	// 01
             break;
 
         // Carried in-line
         default:
-            *data &= ~(0x3 << 0);  // 00                                                    // REMEMBER Carry in-line
+            *data &= ~(0x3 << 0);  // 00
+            *inline_data = hdr->ip6_hlim;
+			inline_data++;
+			compressed_hdr->size += 1;
     }
 
     // Go to next byte in compressed header
@@ -103,7 +110,13 @@ PANCSTATUS pancake_compress_header(struct ip6_hdr *hdr, struct pancake_compresse
 
     // Source adress mode (16 bits address carried in line)
     *data |= (1 << 5);  // Set bit 5=1
-    *data &= ~(1 << 4); // Clear bit 4, -> 10                                              // REMEMBER Carry in-line
+    *data &= ~(1 << 4); // Clear bit 4, -> 10
+    
+    //Source address
+    *inline_data = hdr->ip6_src.s6_addr[14];
+    *(inline_data + 1) = hdr->ip6_src.s6_addr[15];
+    inline_data += 2;
+    compressed_hdr->size += 2;
 
     // Multicast Compression (destination is NOT an Multicast address) (M=0)
     *data &= ~(1 << 3);
@@ -111,42 +124,26 @@ PANCSTATUS pancake_compress_header(struct ip6_hdr *hdr, struct pancake_compresse
     // Destination Address Compression DAC (DAC=0)
     *data &= ~(1 << 2); // Set DAC=0
 
-    // Destination Address Mode (16 bits address carried in line                           // REMEMBER Carry in-line
+    // Destination Address Mode (16 bits address carried in line
     *data |= (1 << 1);  // Set bit 1=1
     *data &= ~(1 << 0); // Clear bit 0, -> 10
 
-    /*
-     * Data carried in-line
-     */
-    // Next header
-    *inline_data = hdr->ip6_nxt; 
-	inline_data++;
-	compressed_hdr->size += 1;
-
-    // Hop limit
-    *inline_data = hdr->ip6_hlim;
-    inline_data++;
-    compressed_hdr->size += 1;
-
-    //Source address
-    *inline_data = hdr->ip6_src.s6_addr[14];
-    *(inline_data + 1) = hdr->ip6_src.s6_addr[15];
-    inline_data += 2;
-    compressed_hdr->size += 2;
-
-    // Destination address
+	// Destination address
     *inline_data = hdr->ip6_dst.s6_addr[14];
     *(inline_data + 1) = hdr->ip6_dst.s6_addr[15];
     inline_data += 2;
     compressed_hdr->size += 2;
 
     return PANCSTATUS_OK;
+    
+err_out:
+	return PANCSTATUS_ERR;
 }
 
 /**
  * Header decompression
  */
-PANCSTATUS pancake_decompress_header(struct pancake_compressed_ip6_hdr *compressed_hdr, struct ip6_hdr *hdr)
+PANCSTATUS pancake_decompress_header(struct pancake_compressed_ip6_hdr *compressed_hdr, struct ip6_hdr *hdr, uint16_t payload_length)
 {
     // Build header
     uint8_t *data = compressed_hdr->hdr_data;
@@ -167,7 +164,7 @@ PANCSTATUS pancake_decompress_header(struct pancake_compressed_ip6_hdr *compress
     switch(*data & (0x3 << 3)) {
         // ECN + DSCP + 4-bit Pad + Flow Label (4 bytes)					// NOT IMPLEMENTED
         case (0x0 << 3):
-            return PANCSTATUS_ERR;
+            goto not_implemented;
             break;
 
         //ECN + 2-bit Pad + Flow Label (3 bytes), DSCP is elided.			// NOT IMPLEMENTED
@@ -191,7 +188,7 @@ PANCSTATUS pancake_decompress_header(struct pancake_compressed_ip6_hdr *compress
 
         // ECN + DSCP (1 byte), Flow Label is elided.						// NOT IMPLEMENTED
         case (0x2 << 3):
-            return PANCSTATUS_ERR;
+            goto not_implemented;
             break;
 
         // Traffic Class and Flow Label are elided.
@@ -208,8 +205,8 @@ PANCSTATUS pancake_decompress_header(struct pancake_compressed_ip6_hdr *compress
 		inline_data++;
     }
     else {
-		// Next header is compressed using LOWPAN_NHC						// NOT IMPLEMENTED
-		return PANCSTATUS_ERR;
+		// Next header is compressed using LOWPAN_NHC
+		goto not_implemented;												// NOT IMPLEMENTED
     }
 
     // Hop limit
@@ -243,7 +240,7 @@ PANCSTATUS pancake_decompress_header(struct pancake_compressed_ip6_hdr *compress
 	if ((*data & (0x1 < 7)) == (0x1 << 7)) {
 		// An additional 8-bit Context Identifier Extension field
 		// immediately follows the Destination Address Mode (DAM) field.
-		return PANCSTATUS_ERR;													// NOT IMPLEMENTED
+		goto not_implemented;													// NOT IMPLEMENTED
 	}
 	
 	// Source Address Compression 
@@ -253,14 +250,14 @@ PANCSTATUS pancake_decompress_header(struct pancake_compressed_ip6_hdr *compress
 		switch(*data & (0x3 << 4)) {
 			// 128 bits. The full address is carried in-line
 			case (0x0 << 4):
-				return PANCSTATUS_ERR;											// NOT IMPLEMENTED
+				goto not_implemented;											// NOT IMPLEMENTED
 				break;
 			
 			// 64 bits. The first 64-bits of the address are elided.
             // The value of those bits is the link-local prefix padded with
             // zeros.  The remaining 64 bits are carried in-line.
 			case (0x1 << 4):
-				return PANCSTATUS_ERR;											// NOT IMPLEMENTED
+				goto not_implemented;											// NOT IMPLEMENTED
 				break;
 				
 			// 16 bits. The first 112 bits of the address are elided.
@@ -294,13 +291,13 @@ PANCSTATUS pancake_decompress_header(struct pancake_compressed_ip6_hdr *compress
             // header (e.g., 802.15.4 or IPv6 source address) as specified
             // in Section 3.2.2.
 			case (0x3 << 4):
-				return PANCSTATUS_ERR;											// NOT IMPLEMENTED
+				goto not_implemented;											// NOT IMPLEMENTED
 				break;
 		}
 	} 
 	else {
 		// uses context-based compression
-		return PANCSTATUS_ERR;													// NOT IMPLEMENTED
+		goto not_implemented;													// NOT IMPLEMENTED
 	}
 	
 	// Destination is Multicast adress
@@ -311,7 +308,7 @@ PANCSTATUS pancake_decompress_header(struct pancake_compressed_ip6_hdr *compress
 		if ((*data & (1 < 2)) == (0x1 << 2)) {
 			// An additional 8-bit Context Identifier Extension field
 			// immediately follows the Destination Address Mode (DAM) field.
-			return PANCSTATUS_ERR;
+			goto not_implemented;												// NOT IMPLEMENTED
 		}
 		
 		// Source Address Mode (Multicast=0)(DAC=0)
@@ -319,14 +316,14 @@ PANCSTATUS pancake_decompress_header(struct pancake_compressed_ip6_hdr *compress
 			
 			// 128 bits.  The full address is carried in-line.
 			case 0x0:
-				return PANCSTATUS_ERR; 											// NOT IMPLEMENTED
+				goto not_implemented;		 									// NOT IMPLEMENTED
 				break;
 			
 			// 64 bits.  The first 64-bits of the address are elided.
             // The value of those bits is the link-local prefix padded with
             // zeros.  The remaining 64 bits are carried in-line.
 			case 0x1:
-				return PANCSTATUS_ERR; 											// NOT IMPLEMENTED
+				goto not_implemented;		 									// NOT IMPLEMENTED
 				break;
 				
 			// 16 bits.  The first 112 bits of the address are elided.
@@ -359,21 +356,28 @@ PANCSTATUS pancake_decompress_header(struct pancake_compressed_ip6_hdr *compress
             // header (e.g., 802.15.4 or IPv6 destination address) as
             // specified in Section 3.2.2.
 			case 0x3:
-				return PANCSTATUS_ERR; 											// NOT IMPLEMENTED
+				goto not_implemented;		 									// NOT IMPLEMENTED
 				break;
 		}
 		
 	}
 	else {
 		// Destination is a multicast adress
-		return PANCSTATUS_ERR;													// NOT IMPLEMENTED
+		goto err_out;															// NOT IMPLEMENTED
 	}
 	
 	// Payload from 802.15.4 packet or fragmentation header 					// TODO, NOT IMPLEMENTED
-	return PANCSTATUS_ERR;
+	hdr->ip6_plen = htons(payload_length);
 																											
 
 	return PANCSTATUS_OK;
+	
+err_out:
+	return PANCSTATUS_ERR;
+	
+not_implemented:
+	printf("%s\n", "Action is not implemented");
+	return PANCSTATUS_ERR; 
 }
 
 /**

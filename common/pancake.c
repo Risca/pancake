@@ -124,7 +124,7 @@ PANCSTATUS pancake_send(PANCHANDLE handle, struct ip6_hdr *hdr, uint8_t *payload
 	//pancake_diff_header(hdr, &hdr2);
 
     // Decompress header into hdr2
-	ret = pancake_decompress_header(&compressed_ip6_hdr, &hdr2);
+	ret = pancake_decompress_header(&compressed_ip6_hdr, &hdr2, payload_length);
 	if (ret != PANCSTATUS_OK) {
 		printf("%s", "Error, failed with decompression\n");
 	}
