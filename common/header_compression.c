@@ -20,6 +20,8 @@ PANCSTATUS pancake_compress_header(struct ip6_hdr *hdr, struct pancake_compresse
     uint8_t *data = compressed_hdr->hdr_data;
     uint8_t *inline_data = (data + 2);
     uint8_t traffic_class = ntohl(hdr->ip6_flow) >> 20; 	// bits 20-27
+    uint8_t i;
+    uint8_t ip_len = 16;
     
     // Header is 2 Bytes in size
     compressed_hdr->size = 2;
@@ -107,36 +109,116 @@ PANCSTATUS pancake_compress_header(struct ip6_hdr *hdr, struct pancake_compresse
 
     // Source Address Compression SAC
     *data &= ~(1 << 6); // Set SAC=0
-
-    // Source adress mode (16 bits address carried in line)
-    *data |= (1 << 5);  // Set bit 5=1
-    *data &= ~(1 << 4); // Clear bit 4, -> 10
     
-    //Source address
-    *inline_data = hdr->ip6_src.s6_addr[14];
-    *(inline_data + 1) = hdr->ip6_src.s6_addr[15];
-    inline_data += 2;
-    compressed_hdr->size += 2;
+    // Source address
+    switch(0x2) {
+    	// Full address copied to inline data
+    	case 0x0:
+			*data &= ~(0x3 << 4); // Clear bits
+			
+			// Copy full adress to inline data
+			for(i = 0; i < ip_len; i += 1) {
+				*(inline_data + i) = hdr->ip6_src.s6_addr[i];
+			}
+			
+			compressed_hdr->size += ip_len;
+			break;
+			
+		// 64 bit adress inline
+		case 0x1:
+			*data &= ~(0x2 << 4);	// Clear bit 1
+			*data |= (0x1 << 4);	// Set bit 0
+			
+			// Copy the least 64 bits from adress to inline data
+			for(i = (ip_len/2); i < ip_len; i += 1) {
+				*inline_data = hdr->ip6_src.s6_addr[i];
+				inline_data++;
+			}
+			
+			compressed_hdr->size += (ip_len/2);	
+			break;
+			
+		// 16 bit adress inline
+		case 0x2:
+			// Source adress mode (16 bits address carried in line)
+			*data |= (1 << 5);  // Set bit 5=1
+			*data &= ~(1 << 4); // Clear bit 4, -> 10
+
+			//Source address
+			*inline_data = hdr->ip6_src.s6_addr[14];
+			*(inline_data + 1) = hdr->ip6_src.s6_addr[15];
+			inline_data += 2;
+			compressed_hdr->size += 2;
+			break;
+			
+		// 0 bits adress inline
+		case 0x3:
+			goto not_implemented;
+			break;
+	}
+    
+    
 
     // Multicast Compression (destination is NOT an Multicast address) (M=0)
     *data &= ~(1 << 3);
 
     // Destination Address Compression DAC (DAC=0)
     *data &= ~(1 << 2); // Set DAC=0
+    
+    // Destination adress
+    switch(0x2) {
+    	// Full address copied to inline data
+    	case 0x0:
+			*data &= ~(0x3 << 0); // Clear bits
+			
+			// Copy full adress to inline data
+			for(i = 0; i < ip_len; i += 1) {
+				*(inline_data + i) = hdr->ip6_dst.s6_addr[i];
+			}
+			
+			compressed_hdr->size += ip_len;
+			break;
+			
+		// 64 bit adress inline
+		case 0x1:
+			*data &= ~(0x2 << 0);	// Clear bit 1
+			*data |= (0x1 << 0);	// Set bit 0
+			
+			// Copy the least 64 bits from adress to inline data
+			for(i = (ip_len/2); i < ip_len; i += 1) {
+				*inline_data = hdr->ip6_dst.s6_addr[i];
+				inline_data++;
+			}
+			
+			compressed_hdr->size += (ip_len/2);	
+			break;
+			
+		// 16 bit adress inline
+		case 0x2:
+			// Destination Address Mode (16 bits address carried in line
+			*data |= (1 << 1);  // Set bit 1=1
+			*data &= ~(1 << 0); // Clear bit 0, -> 10
 
-    // Destination Address Mode (16 bits address carried in line
-    *data |= (1 << 1);  // Set bit 1=1
-    *data &= ~(1 << 0); // Clear bit 0, -> 10
-
-	// Destination address
-    *inline_data = hdr->ip6_dst.s6_addr[14];
-    *(inline_data + 1) = hdr->ip6_dst.s6_addr[15];
-    inline_data += 2;
-    compressed_hdr->size += 2;
+			// Destination address
+			*inline_data = hdr->ip6_dst.s6_addr[14];
+			*(inline_data + 1) = hdr->ip6_dst.s6_addr[15];
+			inline_data += 2;
+			compressed_hdr->size += 2;
+			break;
+			
+		// 0 bits adress inline
+		case 0x3:
+			goto not_implemented;
+			break;
+	}
 
     return PANCSTATUS_OK;
     
 err_out:
+	return PANCSTATUS_ERR;
+	
+not_implemented:
+	printf("%s\n", "Header compression: Not implemented");
 	return PANCSTATUS_ERR;
 }
 
@@ -257,7 +339,18 @@ PANCSTATUS pancake_decompress_header(struct pancake_compressed_ip6_hdr *compress
             // The value of those bits is the link-local prefix padded with
             // zeros.  The remaining 64 bits are carried in-line.
 			case (0x1 << 4):
-				goto not_implemented;											// NOT IMPLEMENTED
+				
+				// First 64 bits from link-local prefix
+				for(i = 0; i < (ip_len/2); i += 1) {
+					hdr->ip6_src.s6_addr[i] = link_local_prefix[i];
+				}
+				
+				// Least 64 bits from inline data
+				for(i = (ip_len/2); i < ip_len; i += 1) {
+					hdr->ip6_src.s6_addr[i] = *inline_data;
+					inline_data++;
+				}
+				
 				break;
 				
 			// 16 bits. The first 112 bits of the address are elided.
@@ -311,19 +404,36 @@ PANCSTATUS pancake_decompress_header(struct pancake_compressed_ip6_hdr *compress
 			goto not_implemented;												// NOT IMPLEMENTED
 		}
 		
-		// Source Address Mode (Multicast=0)(DAC=0)
+		// Destination Address Mode (Multicast=0)(DAC=0)
 		switch(*data & (0x3 << 0)) {
 			
 			// 128 bits.  The full address is carried in-line.
 			case 0x0:
-				goto not_implemented;		 									// NOT IMPLEMENTED
+				//goto not_implemented;		 									// NOT IMPLEMENTED
+				
+				// Copy whole adress to inline data
+				for(i = 0; i < ip_len; i += 1) {
+					hdr->ip6_dst.s6_addr[i] = *(inline_data + i);
+				}
+				
+				inline_data += ip_len;
+				
 				break;
 			
 			// 64 bits.  The first 64-bits of the address are elided.
             // The value of those bits is the link-local prefix padded with
             // zeros.  The remaining 64 bits are carried in-line.
 			case 0x1:
-				goto not_implemented;		 									// NOT IMPLEMENTED
+				// First 64 bits from link-local prefix
+				for(i = 0; i < (ip_len/2); i += 1) {
+					hdr->ip6_dst.s6_addr[i] = link_local_prefix[i];
+				}
+				
+				// Least 64 bits from inline data
+				for(i = (ip_len/2); i < ip_len; i += 1) {
+					hdr->ip6_dst.s6_addr[i] = *inline_data;
+					inline_data++;
+				}
 				break;
 				
 			// 16 bits.  The first 112 bits of the address are elided.
@@ -376,7 +486,7 @@ err_out:
 	return PANCSTATUS_ERR;
 	
 not_implemented:
-	printf("%s\n", "Action is not implemented");
+	printf("%s\n", "Header decompression: Not implemented");
 	return PANCSTATUS_ERR; 
 }
 
