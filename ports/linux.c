@@ -30,7 +30,8 @@ static void populate_dummy_ipv6_header(struct ip6_hdr *hdr, uint16_t payload_len
 			0, 0, 0, 0, 0, 0, 0, 0,
 			0, 0, 0, 0xff, 0xfe, 0, 0, 1};
 
-	hdr->ip6_flow	=	htonl(6 << 28);
+	// Version + Traffic Control [ECN(2) + DSCP(6)] + Flow id 26
+	hdr->ip6_flow	=	htonl((6 << 28) | (0x1 << 26) | (26 << 0));
 	hdr->ip6_plen	=	htons(payload_length);
 	hdr->ip6_nxt	=	254;
 	hdr->ip6_hops	=	2;
