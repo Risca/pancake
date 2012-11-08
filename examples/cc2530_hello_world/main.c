@@ -51,9 +51,10 @@ struct pancake_options_cfg my_options = {
 PANCHANDLE my_pancake_handle;
 
 
-/*
+
 static void my_read_callback(struct ip6_hdr *hdr, uint8_t *payload, uint16_t size)
 {
+  /*
 	if (hdr == NULL) {
 		printf("main.c: Got message: %s\n", payload);
 		return;
@@ -61,9 +62,9 @@ static void my_read_callback(struct ip6_hdr *hdr, uint8_t *payload, uint16_t siz
 	printf("main.c: Looping incoming packet to output again\n");
 
 	pancake_send(my_pancake_handle, hdr, payload, size);
-
-}
 */
+}
+
 
 int main(int argc, int **argv)
 {
@@ -74,11 +75,6 @@ int main(int argc, int **argv)
 	if (ret != PANCSTATUS_OK) {
 		goto err_out;
 	}
-	
-	/* Start OSAL */
-	OSAL_START_SYSTEM();
-	
-	
 	
 #if 0
 	ret = pancake_write_test(my_pancake_handle);

@@ -116,7 +116,7 @@ int main(void)
   HAL_ENABLE_INTERRUPTS();
 
   /* Setup Keyboard callback */
-  HalKeyConfig(MSA_KEY_INT_ENABLED, MSA_Main_KeyCallback);
+  HalKeyConfig(FALSE, MSA_Main_KeyCallback);
 
   /* Blink LED on startup */
   HalLedBlink (HAL_LED_4, 0, 40, 200);

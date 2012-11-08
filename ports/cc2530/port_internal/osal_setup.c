@@ -1,4 +1,5 @@
 
+//_____ I N C L U D E S________________________________________________________
 /* Port */
 #include "port_internal.h"
 #include "port_callbacks.h"
@@ -14,20 +15,31 @@
 #include "hal_drivers.h"
 #include "hal_types.h"
 
+#include "stdint.h"
 
 
+
+//_____ P R O T O T Y P E S ___________________________________________________
+static void init_port_process_event( uint8_t task_id );
+
+
+
+//_____ V A R I A B L E   D E C L A R A T I O N S______________________________
 /* Needed by OSAL - Must be implemented
  *
  * The order in this table must be identical to the task initialization calls below in osalInitTask. */
 const pTaskEventHandlerFn tasksArr[] =
 {
   macEventLoop,
-  port_process_event,
+  port_process_mac_event,
   Hal_ProcessEvent
 };
 const uint8 tasksCnt = sizeof( tasksArr ) / sizeof( tasksArr[0] );
 uint16 *tasksEvents;
 
+
+
+//_____ F U N C T I O N   D E F I N I T I O N S________________________________
 /* Called by OSAL - Must be implemented */
 void osalInitTasks( void )
 {
@@ -37,7 +49,7 @@ void osalInitTasks( void )
   osal_memset( tasksEvents, 0, (sizeof( uint16 ) * tasksCnt));
 
   macTaskInit( taskID++ );
-  init_process_event_task( taskID++ );
+  init_port_process_event( taskID++ );
   Hal_Init( taskID );
 }
 
@@ -46,7 +58,7 @@ void init_port_process_event( uint8_t task_id )
 	uint8 i;
 	
 	/* Initialize the task id */
-	port_process_event_task_id = taskId;
+	port_process_mac_event_task_id = task_id;
 	
 	/* initialize MAC features */
 	MAC_InitDevice();

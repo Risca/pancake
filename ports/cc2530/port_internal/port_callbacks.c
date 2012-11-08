@@ -1,4 +1,7 @@
+
+//_____ I N C L U D E S________________________________________________________
 /* Port */
+#include "port_callbacks.h"
 #include "port_internal.h"
 
 /* Hal Driver includes */
@@ -22,9 +25,10 @@
 #include "mac_api.h"
 #include "mac_main.h"
 
+#include "stdint.h"
 
-
-uint16 port_process_event(uint8 taskId, uint16 events)
+//_____ F U N C T I O N   D E F I N I T I O N S________________________________
+uint16 port_process_mac_event(uint8 taskId, uint16 events)
 {
   uint8* pMsg;
   macCbackEvent_t* pData;
@@ -34,7 +38,7 @@ uint16 port_process_event(uint8 taskId, uint16 events)
 
   if (events & SYS_EVENT_MSG)
   {
-    while ((pMsg = osal_msg_receive(MSA_TaskId)) != NULL)
+    while ((pMsg = osal_msg_receive(port_process_mac_event_task_id)) != NULL)
     {
       switch ( *pMsg )
       {
@@ -54,6 +58,8 @@ uint16 port_process_event(uint8 taskId, uint16 events)
 
 		/* Got a beacon frame */
         case MAC_MLME_BEACON_NOTIFY_IND:
+		  //HalLedBlink (HAL_LED_4, 0, 40, 1000);
+		  
 		  // TO BE IMPLEMENTED
           break;
 
@@ -70,7 +76,7 @@ uint16 port_process_event(uint8 taskId, uint16 events)
           /* If there is no other on the channel or no other with sampleBeacon */
           if ((pData->scanCnf.resultListSize == 0) && (pData->scanCnf.hdr.status == MAC_NO_BEACON))
           {
-            HalLedBlink (HAL_LED_4, 0, 40, 1000);
+            //HalLedBlink (HAL_LED_4, 0, 40, 1000);
           }
           break;
 
@@ -92,4 +98,16 @@ uint16 port_process_event(uint8 taskId, uint16 events)
     return events ^ SYS_EVENT_MSG;
   }
   return 0;
+}
+
+
+
+void port_process_key_event(uint8 keys, uint8 state)
+{
+  if ( keys & HAL_KEY_SW_1 )
+  {
+	  HalLedSet( HAL_LED_2, HAL_LED_MODE_ON );
+	  
+  }
+
 }

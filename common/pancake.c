@@ -49,6 +49,16 @@ err_out:
 	return PANCSTATUS_ERR;
 }
 
+/*
+PANCSTATUS pancake_update()
+{
+
+  	return PANCSTATUS_OK;
+err_out:
+	return PANCSTATUS_ERR;
+}
+*/
+
 PANCSTATUS pancake_write_test(PANCHANDLE handle)
 {
 	uint8_t ret;

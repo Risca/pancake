@@ -4195,15 +4195,6 @@
       <name>CC2530_Hello_World</name>
       <file>
         <name>$PROJ_DIR$\..\..\..\..\..\..\..\..\examples\cc2530_hello_world\main.c</name>
-        <excluded>
-          <configuration>Normal</configuration>
-        </excluded>
-      </file>
-      <file>
-        <name>$PROJ_DIR$\..\..\..\..\..\..\..\..\examples\cc2530_hello_world\osal_setup.c</name>
-        <excluded>
-          <configuration>Normal</configuration>
-        </excluded>
       </file>
     </group>
   </group>
@@ -4508,6 +4499,9 @@
       <file>
         <name>$PROJ_DIR$\..\..\..\..\..\..\..\..\include\pancake.h</name>
       </file>
+      <file>
+        <name>$PROJ_DIR$\..\..\..\..\..\..\..\..\include\port.h</name>
+      </file>
     </group>
   </group>
   <group>
@@ -4515,26 +4509,56 @@
     <group>
       <name>Include</name>
       <file>
-        <name>$PROJ_DIR$\..\..\..\..\..\..\..\..\include\port.h</name>
+        <name>$PROJ_DIR$\..\..\..\..\..\..\include\port_callbacks.h</name>
+      </file>
+      <file>
+        <name>$PROJ_DIR$\..\..\..\..\..\..\include\port_internal.h</name>
+      </file>
+    </group>
+    <group>
+      <name>Port_internal</name>
+      <file>
+        <name>$PROJ_DIR$\..\..\..\..\..\..\port_internal\mac_callbacks.c</name>
+      </file>
+      <file>
+        <name>$PROJ_DIR$\..\..\..\..\..\..\port_internal\osal_setup.c</name>
+      </file>
+      <file>
+        <name>$PROJ_DIR$\..\..\..\..\..\..\port_internal\port_callbacks.c</name>
+      </file>
+      <file>
+        <name>$PROJ_DIR$\..\..\..\..\..\..\port_internal\port_internal.c</name>
       </file>
     </group>
     <file>
-      <name>$PROJ_DIR$\..\..\..\..\..\..\cc2530.c</name>
+      <name>$PROJ_DIR$\..\..\..\..\..\..\port.c</name>
     </file>
   </group>
   <group>
     <name>Sample</name>
     <file>
       <name>$PROJ_DIR$\..\..\Application\msa.c</name>
+      <excluded>
+        <configuration>Normal</configuration>
+      </excluded>
     </file>
     <file>
       <name>$PROJ_DIR$\..\..\Application\msa.h</name>
+      <excluded>
+        <configuration>Normal</configuration>
+      </excluded>
     </file>
     <file>
       <name>$PROJ_DIR$\..\..\Application\msa_Main.c</name>
+      <excluded>
+        <configuration>Normal</configuration>
+      </excluded>
     </file>
     <file>
       <name>$PROJ_DIR$\..\..\Application\msa_Osal.c</name>
+      <excluded>
+        <configuration>Normal</configuration>
+      </excluded>
     </file>
   </group>
   <group>
