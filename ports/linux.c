@@ -16,7 +16,6 @@
 static PANCSTATUS linux_init_func(void *dev_data);
 static PANCSTATUS linux_write_func(void *dev_data, struct pancake_ieee_addr *dest, uint8_t *data, uint16_t length);
 static PANCSTATUS linux_destroy_func(void *dev_data);
-static void linux_read_func(uint8_t *data, int16_t length);
 
 struct pancake_port_cfg linux_cfg = {
 	.init_func = linux_init_func,
@@ -74,12 +73,12 @@ void pancake_print_raw_bits(FILE *out, uint8_t *bytes, size_t length)
 #endif
 }
 
-static void populate_dummy_ipv6_header(struct ip6_hdr *hdr, uint16_t payload_length)
+void populate_dummy_ipv6_header(struct ip6_hdr *hdr, uint16_t payload_length)
 {
 	/* Loopback (::1/128) */
-	struct in6_addr addr = {
+	struct in6_addr addr = {{{
 			0xfe, 0x80, 0, 0, 0, 0, 0, 0,
-			0, 0, 0, 0xff, 0xfe, 0, 0, 1};
+			0, 0, 0, 0xff, 0xfe, 0, 0, 1}}};
 
 	// Version + Traffic Control [ECN(2) + DSCP(6)] + Flow id 26
 	hdr->ip6_flow	=	htonl((6 << 28) | (0x1 << 26) | (26 << 0));
@@ -157,18 +156,12 @@ static PANCSTATUS linux_init_func(void *dev_data)
 
 static PANCSTATUS linux_write_func(void *dev_data, struct pancake_ieee_addr *dest, uint8_t *data, uint16_t length)
 {
-	size_t ret;
-	uint8_t bit;
-	uint16_t i;
-	uint8_t j;
 	FILE *out = (FILE*)dev_data;
 
 	fputs("linux.c: Transmitting the following packet to the ether:\n", out);
 	pancake_print_raw_bits(out, data, length);
 
 	return PANCSTATUS_OK;
-err_out:
-	return PANCSTATUS_ERR;
 }
 
 static PANCSTATUS linux_destroy_func(void *dev_data)

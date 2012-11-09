@@ -28,4 +28,4 @@ struct ip6_hdr {
 #define ip6_hops  ip6_ctlun.ip6_un1.ip6_un1_hlim
 
 
-#endif //_NETINET_IP6_H
+#endif /* _NETINET_IP6_H */

@@ -24,4 +24,5 @@ struct pancake_port_cfg {
 	PANCSTATUS (*write_func)(void *dev_data, struct pancake_ieee_addr *dest, uint8_t *data, uint16_t length);
 	PANCSTATUS (*destroy_func)(void *dev_data);
 };
+
 #endif

@@ -29,8 +29,6 @@ PANCSTATUS populate_fragmentation_header(struct pancake_frag_hdr *frag_hdr, uint
 	frag_hdr->offset = offset;
 
 	return PANCSTATUS_OK;
-err_out:
-	return PANCSTATUS_ERR;
 }
 
 /*
@@ -107,7 +105,7 @@ PANCSTATUS pancake_send_fragmented(struct pancake_main_dev *dev, uint8_t *raw_da
 	memcpy((void*)(raw_data + dgram_hdr_len), (void*)(payload + (offset - comp_hdr->size)), payload_len);
 
 	/* Time to pay a little visit to the transmission fairy */
-	ret = dev->cfg->write_func(dev->dev_data, NULL, raw_data, dgram_hdr_len + payload_len);
+	ret = dev->cfg->write_func(dev->dev_data, NULL, raw_data, frag_hdr_len + payload_len);
 	if (ret != PANCSTATUS_OK) {
 		goto err_out;
 	}

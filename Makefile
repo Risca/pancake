@@ -2,19 +2,13 @@ CC			:=	gcc
 LD			:=	gcc
 RM			:=	rm -rf
 TOPDIR		:=	$(shell pwd)
-INCLUDEDIR	:=	$(TOPDIR)/include
+INCLUDEDIR	+=	$(TOPDIR)/include
 COMMONDIR	:=	$(TOPDIR)/common
 PORTSDIR	:=	$(TOPDIR)/ports
 BUILDDIR	:=	$(TOPDIR)/build
-TARGETS		:=	rpi linux
+TARGETS		:=	rpi linux linux_sockets
 TARGET		:=	$(filter $(MAKECMDGOALS),$(TARGETS))
 VPATH		:=	$(COMMONDIR) $(PORTSDIR)
-
-CFLAGS		:=	-I$(INCLUDEDIR)
-LDFLAGS		:=
-
-# Define include files
-INCLUDES	:=	$(INCLUDEDIR)/pancake.h
 
 # Add some sources
 SOURCES		:=	$(COMMONDIR)/pancake.c
@@ -22,11 +16,18 @@ SOURCES		+=	$(COMMONDIR)/in6_addr.c
 SOURCES		+=	$(PORTSDIR)/$(TARGET).c
 SOURCES		+=	$(TOPDIR)/main.c
 
+# Define include files
+INCLUDES	:=	$(INCLUDEDIR)/pancake.h
+
 # Include target specific stuff
 ifneq ($(TARGET),)
 $(info Building for $(TARGET))
 include Makefile.$(TARGET)
 endif
+
+# Make sure this happens after target specific include
+CFLAGS		+=	-I$(INCLUDEDIR) -Wall -Wno-missing-braces
+LDFLAGS		+=
 
 # A bit messy
 OBJECTS		:=	$(patsubst %.c,%.o,$(addprefix $(BUILDDIR)/, $(notdir $(SOURCES))))
