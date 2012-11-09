@@ -73,8 +73,10 @@ struct pancake_frag_hdr {
 	uint16_t tag;
 	uint8_t offset;
 };
+
 #include "pancake_internals/fragmentation.c"
 #include "pancake_internals/reassembly.c"
+#include "pancake_internals/header_compression.c"
 
 PANCSTATUS pancake_init(PANCHANDLE *handle, struct pancake_options_cfg *options_cfg, struct pancake_port_cfg *port_cfg, void *dev_data, read_callback_func read_callback)
 {
@@ -126,11 +128,11 @@ PANCSTATUS pancake_write_test(PANCHANDLE handle)
 		.ip6_flow	=	htonl(6 << 28),
 		.ip6_plen	=	htons(255),
 		.ip6_nxt	=	254,
-		.ip6_hops	=	2,
+		.ip6_hops	=	255,
 		.ip6_src	=	{
 			/* Loopback (::1/128) */
 			0, 0, 0, 0, 0, 0, 0, 0,
-			0, 0, 0, 0, 0, 0, 0, 1,
+			0, 0, 0, 0xff, 0xfe, 0, 0, 1,
 		},
 		.ip6_dst	=	{
 			/* Loopback (::1/128) */
@@ -171,6 +173,7 @@ PANCSTATUS pancake_send(PANCHANDLE handle, struct ip6_hdr *hdr, uint8_t *payload
 	uint16_t length;
 	struct pancake_main_dev *dev;
 	struct pancake_compressed_ip6_hdr compressed_ip6_hdr;
+	compressed_ip6_hdr.hdr_data = raw_data;
 	uint16_t frame_overhead;
 	PANCSTATUS ret;
 
@@ -188,6 +191,10 @@ PANCSTATUS pancake_send(PANCHANDLE handle, struct ip6_hdr *hdr, uint8_t *payload
 		compressed_ip6_hdr.dispatch_value = DISPATCH_IPv6;
 		compressed_ip6_hdr.hdr_data = (uint8_t *)hdr;
 		compressed_ip6_hdr.size = 40;
+		break;
+	case PANC_COMPRESSION_HCIP:
+		pancake_compress_header(hdr, &compressed_ip6_hdr);
+		// TODO; Add dispatch value
 		break;
 	default:
 		/* Not supported... yet */

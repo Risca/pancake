@@ -57,4 +57,4 @@ clean:
 	$(RM) $(OBJECTS) $(TARGETS)
 
 distclean: clean
-	rm -r $(BUILDDIR)
+	rm -rf $(BUILDDIR)

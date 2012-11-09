@@ -24,8 +24,15 @@ struct pancake_port_cfg linux_cfg = {
 	.destroy_func = linux_destroy_func,
 };
 
+#if PANC_HAVE_PRINTF != 0
+#define pancake_fprintf(...) fprintf(__VA_ARGS__)
+#else
+#define pancake_fprintf(...) {}
+#endif
+
 void pancake_print_raw_bits(FILE *out, uint8_t *bytes, size_t length)
 {
+#if PANC_HAVE_PRINTF != 0
 	uint8_t bit;
 	uint16_t i;
 	uint8_t j;
@@ -64,16 +71,18 @@ void pancake_print_raw_bits(FILE *out, uint8_t *bytes, size_t length)
 		}
 		fputs("\n", out);
 	}
+#endif
 }
 
 void populate_dummy_ipv6_header(struct ip6_hdr *hdr, uint16_t payload_length)
 {
 	/* Loopback (::1/128) */
 	struct in6_addr addr = {
-			0, 0, 0, 0, 0, 0, 0, 0,
-			0, 0, 0, 0, 0, 0, 0, 1};
+			0xfe, 0x80, 0, 0, 0, 0, 0, 0,
+			0, 0, 0, 0xff, 0xfe, 0, 0, 1};
 
-	hdr->ip6_flow	=	htonl(6 << 28);
+	// Version + Traffic Control [ECN(2) + DSCP(6)] + Flow id 26
+	hdr->ip6_flow	=	htonl((6 << 28) | (0x1 << 26) | (26 << 0));
 	hdr->ip6_plen	=	htons(payload_length);
 	hdr->ip6_nxt	=	254;
 	hdr->ip6_hops	=	2;
@@ -102,7 +111,7 @@ static void linux_read_thread(void *dev_data)
 	/* Raw IPv6 packet dispatch value */
 	data[0] = 0x41;
 
-#if 0
+#if 1
 	/* Send 3 packets with 1 seconds delay */
 	for (i=0; i < 3; i++) {
 		*payload = i;
@@ -113,7 +122,7 @@ static void linux_read_thread(void *dev_data)
 #else
 		sleep(timeout);
 #endif
-		fprintf(out, "linux.c: Patching incoming packet to pancake_process_data()\n");
+		pancake_fprintf(out, "linux.c: Patching incoming packet to pancake_process_data()\n");
 		ret = pancake_process_data(dev_data, NULL, NULL, data, length);
 		if (ret != PANCSTATUS_OK) {
 			/* What to do, what to do? */
@@ -121,14 +130,14 @@ static void linux_read_thread(void *dev_data)
 	}
 #endif
 
-#if 0
+#if 1
 	/* Send 1 big packet */
 	for (i=0; i < 200; i++) {
 		*payload++ = (uint8_t)i;
 	}
 	populate_dummy_ipv6_header(hdr, 200);
 	length = 200 + 1 + 40;
-	fprintf(out, "linux.c: Patching incoming packet to pancake_process_data()\n");
+	pancake_fprintf(out, "linux.c: Patching incoming packet to pancake_process_data()\n");
 	ret = pancake_process_data(dev_data, NULL, NULL, data, length);
 	if (ret != PANCSTATUS_OK) {
 		/* What to do, what to do? */
