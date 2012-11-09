@@ -27,7 +27,7 @@ endif
 
 # Make sure this happens after target specific include
 CFLAGS		+=	-I$(INCLUDEDIR) -Wall -Wno-missing-braces
-LDFLAGS		+=	-Wall -Wno-missing-braces
+LDFLAGS		+=
 
 # A bit messy
 OBJECTS		:=	$(patsubst %.c,%.o,$(addprefix $(BUILDDIR)/, $(notdir $(SOURCES))))

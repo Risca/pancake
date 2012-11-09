@@ -1,3 +1,5 @@
+CC	=	arm-bcm2708-linux-gnueabi-gcc
+LD	=	arm-bcm2708-linux-gnueabi-gcc
 LDFLAGS	+=	-lpthread -g
 #CFLAGS	+=	-g -I$(INCLUDEDIR)/limited
 CFLAGS	+=	-g
