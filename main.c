@@ -5,8 +5,8 @@
 #include <netinet/ip6.h>
 #include <string.h>
 
-extern struct pancake_port_cfg linux_cfg;
-struct pancake_options_cfg my_linux_options = {
+extern struct pancake_port_cfg linux_sockets_cfg;
+struct pancake_options_cfg my_linux_sockets_options = {
 	.compression = PANC_COMPRESSION_NONE,
 	.security = PANC_SECURITY_NONE,
 };
@@ -28,6 +28,7 @@ void my_read_callback(struct ip6_hdr *hdr, uint8_t *payload, uint16_t size)
 #endif
 }
 
+#if 1
 void populate_dummy_ipv6_header(struct ip6_hdr *hdr, uint16_t payload_length)
 {
 	/* Loopback (::1/128) */
@@ -44,13 +45,14 @@ void populate_dummy_ipv6_header(struct ip6_hdr *hdr, uint16_t payload_length)
 	memcpy((uint8_t *)hdr + 8, &addr, 16);
 	memcpy((uint8_t *)hdr + 24, &addr, 16);
 }
+#endif
 
 int main(int argc, int **argv)
 {
 	char ipstr[INET6_ADDRSTRLEN];
 	uint8_t i, timeout = 1;
 	uint8_t data[127*3];
-	uint16_t length = 1 + 40 + 2;
+	uint16_t payload_length = 2;
 	PANCSTATUS ret;
 	struct ip6_hdr 	*hdr 		= (struct ip6_hdr *)(data+1);
 	uint8_t			*payload	= data + 1 + 40;
@@ -60,13 +62,15 @@ int main(int argc, int **argv)
 
 	if (argc > 1) {
 		strcpy(ipstr, (char *) argv[1]);
+		printf("Will connect to :\t%s\n",ipstr);
 	} else {
 		strcpy(ipstr, "::");
 	}
 
-	ret = pancake_init(&my_pancake_handle, &my_linux_options, &linux_cfg, ipstr, my_read_callback);
+	ret = pancake_init(&my_pancake_handle, &my_linux_sockets_options, &linux_sockets_cfg, ipstr, my_read_callback);
 	if (ret != PANCSTATUS_OK) {
 		printf("main.c: pancake failed to initialize!\n");
+		return EXIT_FAILURE;
 	}
 
 	if (argc > 1) {
@@ -76,10 +80,22 @@ int main(int argc, int **argv)
 			*(payload+1) = 255-i;
 			populate_dummy_ipv6_header(hdr, 2);
 			sleep(timeout);
-			ret = pancake_send(my_pancake_handle, hdr, payload, length);
+			ret = pancake_send(my_pancake_handle, hdr, payload, payload_length);
 			if (ret != PANCSTATUS_OK) {
+				printf("Failed to send!\n");
 				/* What to do, what to do? */
 			}
+		}
+
+		for (i = 0; i < 200; i++) {
+			payload[i] = i;
+		}
+		populate_dummy_ipv6_header(hdr, 200);
+		payload_length = 200;
+		sleep(timeout);
+		ret = pancake_send(my_pancake_handle, hdr, payload, payload_length);
+		if (ret != PANCSTATUS_OK) {
+			printf("Failed to send big packet!\n");
 		}
 	}
 

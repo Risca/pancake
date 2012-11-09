@@ -99,7 +99,7 @@ PANCSTATUS pancake_init(PANCHANDLE *handle, struct pancake_options_cfg *options_
 	/* Initialize port */
 	if (port_cfg->init_func) {
 		ret = port_cfg->init_func(dev_data);
-		if (ret < 0) {
+		if (ret != PANCSTATUS_OK) {
 			goto err_out;
 		}
 	}
@@ -185,9 +185,9 @@ PANCSTATUS pancake_send(PANCHANDLE handle, struct ip6_hdr *hdr, uint8_t *payload
 
 	switch (dev->options->compression) {
 	case PANC_COMPRESSION_NONE:
+		compressed_ip6_hdr.dispatch_value = DISPATCH_IPv6;
 		compressed_ip6_hdr.hdr_data = (uint8_t *)hdr;
 		compressed_ip6_hdr.size = 40;
-		compressed_ip6_hdr.dispatch_value = DISPATCH_IPv6;
 		break;
 	default:
 		/* Not supported... yet */
@@ -212,6 +212,8 @@ PANCSTATUS pancake_send(PANCHANDLE handle, struct ip6_hdr *hdr, uint8_t *payload
 		memcpy((void*)(raw_data + compressed_ip6_hdr.size + 1), (void*)payload, payload_length);
 
 		length = frame_overhead+payload_length;
+		pancake_printf("Frame overhead: %u\n", frame_overhead);
+		pancake_printf("Payload length: %u\n", payload_length);
 		ret = dev->cfg->write_func(dev->dev_data, NULL, raw_data, length);
 		if (ret != PANCSTATUS_OK) {
 			goto err_out;
@@ -286,6 +288,8 @@ PANCSTATUS pancake_process_data(void *dev_data, struct pancake_ieee_addr *src, s
 			}
 			else {
 				/* Not a LowPAN frame */
+				pancake_printf("Not a LoWPAN frame?:\n");
+				pancake_print_raw_bits(NULL, data, size);
 				goto out;
 			}
 		}
