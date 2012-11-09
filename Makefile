@@ -26,8 +26,8 @@ include Makefile.$(TARGET)
 endif
 
 # Make sure this happens after target specific include
-CFLAGS		+=	-I$(INCLUDEDIR)
-LDFLAGS		+=
+CFLAGS		+=	-I$(INCLUDEDIR) -Wall -Wno-missing-braces
+LDFLAGS		+=	-Wall -Wno-missing-braces
 
 # A bit messy
 OBJECTS		:=	$(patsubst %.c,%.o,$(addprefix $(BUILDDIR)/, $(notdir $(SOURCES))))

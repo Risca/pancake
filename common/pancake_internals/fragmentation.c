@@ -29,8 +29,6 @@ PANCSTATUS populate_fragmentation_header(struct pancake_frag_hdr *frag_hdr, uint
 	frag_hdr->offset = offset;
 
 	return PANCSTATUS_OK;
-err_out:
-	return PANCSTATUS_ERR;
 }
 
 /*

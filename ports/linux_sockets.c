@@ -24,9 +24,8 @@ int clientfd;
 static PANCSTATUS linux_sockets_init_func(void *dev_data);
 static PANCSTATUS linux_sockets_write_func(void *dev_data, struct pancake_ieee_addr *dest, uint8_t *data, uint16_t length);
 static PANCSTATUS linux_sockets_destroy_func(void *dev_data);
-static void linux_sockets_read_func(uint8_t *data, int16_t length);
 
-struct pancake_port_cfg linux_sockets_cfg = {
+struct pancake_port_cfg linux_cfg = {
 	.init_func = linux_sockets_init_func,
     .write_func = linux_sockets_write_func,
 	.destroy_func = linux_sockets_destroy_func,
@@ -74,7 +73,7 @@ void pancake_print_raw_bits(FILE *out, uint8_t *bytes, size_t length)
 	}
 }
 
-static void populate_dummy_ipv6_header(struct ip6_hdr *hdr, uint16_t payload_length)
+void populate_dummy_ipv6_header(struct ip6_hdr *hdr, uint16_t payload_length)
 {
 	/* Loopback (::1/128) */
 	struct in6_addr addr = {
@@ -120,16 +119,13 @@ void *get_in_addr(struct sockaddr *sa)
 
 static void linux_sockets_thread(void *dev_data)
 {
-	uint8_t i, timeout = 1;
 	int status;
 	uint8_t buf[102];
-	PANCSTATUS ret;
 	int numbytes;
 	int sockfd, new_fd;
-	char            ipaddr[INET6_ADDRSTRLEN];
 	char            s[INET6_ADDRSTRLEN];
 	char            *ipstr      = (char *)dev_data;
-	struct addrinfo hints, *res, *p;
+	struct addrinfo hints, *res;
 	struct sockaddr_storage their_addr;
 	socklen_t addr_size;
 	struct pancake_ieee_addr ieee_addr = { 
@@ -195,21 +191,11 @@ static void linux_sockets_thread(void *dev_data)
 
 static int linux_sockets_connect(void *dev_data)
 {
-	uint8_t i, timeout = 0;
+	uint8_t timeout = 0;
 	int status;
-	uint8_t data[127*3];
-	uint16_t length = 1 + 40 + 2;
-	PANCSTATUS ret;
-	int numsent;
-	int sockfd, new_fd;
-	char            ipaddr[INET6_ADDRSTRLEN];
-	char            s[INET6_ADDRSTRLEN];
+	int sockfd;
 	char            *ipstr      = (char *)dev_data;
-	struct ip6_hdr 	*hdr 		= (struct ip6_hdr *)(data+1);
-	uint8_t			*payload	= data + 1 + 40;
-	struct addrinfo hints, *res, *p;
-	struct sockaddr_storage their_addr;
-	socklen_t addr_size;
+	struct addrinfo hints, *res;
 
 	memset(&hints, 0, sizeof hints);
 	hints.ai_family = AF_INET6;
@@ -268,7 +254,6 @@ static PANCSTATUS linux_sockets_write_func(void *dev_data, struct pancake_ieee_a
 	ssize_t numbytes;
 
 	printf("Sending packet:\n");
-	printf("length: %u\n", length);
 	pancake_print_raw_bits(NULL, data, length);
 	numbytes = send(clientfd, data, length, 0);
 	if (numbytes < 0) {
@@ -277,7 +262,7 @@ static PANCSTATUS linux_sockets_write_func(void *dev_data, struct pancake_ieee_a
 
 	if (numbytes == 0) {
 		printf("Connection closed\n");
-		return;
+		goto err_out;
 	}
 
 	return PANCSTATUS_OK;

@@ -2,6 +2,10 @@
 #include <stddef.h>
 #include <string.h>
 
+#if PANC_USE_HELPERS != 0
+#include <helpers.h>
+#endif
+
 #if PANC_HAVE_PRINTF != 0
 #include <stdio.h>
 #endif
@@ -50,6 +54,8 @@ static void print_pancake_error(char *source, PANCSTATUS ret)
 		break;
 	case PANCSTATUS_NOTREADY:
 		pancake_printf("%s: Not ready\n", source);
+		break;
+	default:
 		break;
 	}
 }
@@ -147,7 +153,7 @@ PANCSTATUS pancake_write_test(PANCHANDLE handle)
 		goto err_out;
 	}
 
-	dev->read_callback(NULL, "Write test successful!", 0);
+	dev->read_callback(NULL, (uint8_t *)"Write test successful!", 0);
 
 	return PANCSTATUS_OK;
 err_out:
@@ -168,7 +174,6 @@ void pancake_destroy(PANCHANDLE handle)
 
 PANCSTATUS pancake_send(PANCHANDLE handle, struct ip6_hdr *hdr, uint8_t *payload, uint16_t payload_length)
 {
-	uint8_t i;
 	uint8_t raw_data[aMaxPHYPacketSize - aMaxFrameOverhead];
 	uint16_t length;
 	struct pancake_main_dev *dev;
@@ -219,8 +224,6 @@ PANCSTATUS pancake_send(PANCHANDLE handle, struct ip6_hdr *hdr, uint8_t *payload
 		memcpy((void*)(raw_data + compressed_ip6_hdr.size + 1), (void*)payload, payload_length);
 
 		length = frame_overhead+payload_length;
-		pancake_printf("Frame overhead: %u\n", frame_overhead);
-		pancake_printf("Payload length: %u\n", payload_length);
 		ret = dev->cfg->write_func(dev->dev_data, NULL, raw_data, length);
 		if (ret != PANCSTATUS_OK) {
 			goto err_out;
@@ -252,7 +255,6 @@ static PANCHANDLE pancake_handle_from_dev_data(void *dev_data)
 
 PANCSTATUS pancake_process_data(void *dev_data, struct pancake_ieee_addr *src, struct pancake_ieee_addr *dst, uint8_t *data, uint16_t size)
 {
-	struct ip6_hdr *hdr;
 	uint8_t *payload;
 	uint16_t payload_length;
 	PANCSTATUS ret = PANCSTATUS_ERR;
@@ -289,7 +291,7 @@ PANCSTATUS pancake_process_data(void *dev_data, struct pancake_ieee_addr *src, s
 			payload_length = (ra_buf->frag_hdr.size & 0x7FF);
 			break;
 		default:
-			if (*data & 0xC0 == DISPATCH_MESH) {
+			if ((*data & 0xC0) == DISPATCH_MESH) {
 				/* Not implemented yet */
 				goto out;
 			}
@@ -303,7 +305,7 @@ PANCSTATUS pancake_process_data(void *dev_data, struct pancake_ieee_addr *src, s
 	};
 
 	/* Relay data to upper levels */
-	dev->read_callback(hdr, payload, payload_length);
+	dev->read_callback((struct ip6_hdr *)1, payload, payload_length);
 	ret = PANCSTATUS_OK;
 
 out:

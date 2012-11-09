@@ -1,5 +1,5 @@
-
 #if PANC_TESTS_ENABLED != 0
+extern void pancake_print_raw_bits(FILE *out, uint8_t *bytes, size_t length);
 static uint8_t fragmented_packet[3][102];
 
 void populate_fragmented_packets()

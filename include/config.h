@@ -6,5 +6,6 @@
 #define PANC_TESTS_ENABLED 1
 #define PANC_HELPERS_ENABLED 1
 #define PANC_HAVE_PRINTF 1
+#define PANC_BIG_ENDIAN 0
 
 #endif
