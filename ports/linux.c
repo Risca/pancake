@@ -70,10 +70,11 @@ static void populate_dummy_ipv6_header(struct ip6_hdr *hdr, uint16_t payload_len
 {
 	/* Loopback (::1/128) */
 	struct in6_addr addr = {
-			0, 0, 0, 0, 0, 0, 0, 0,
-			0, 0, 0, 0, 0, 0, 0, 1};
+			0xfe, 0x80, 0, 0, 0, 0, 0, 0,
+			0, 0, 0, 0xff, 0xfe, 0, 0, 1};
 
-	hdr->ip6_flow	=	htonl(6 << 28);
+	// Version + Traffic Control [ECN(2) + DSCP(6)] + Flow id 26
+	hdr->ip6_flow	=	htonl((6 << 28) | (0x1 << 26) | (26 << 0));
 	hdr->ip6_plen	=	htons(payload_length);
 	hdr->ip6_nxt	=	254;
 	hdr->ip6_hops	=	2;
@@ -102,7 +103,6 @@ static void linux_read_thread(void *dev_data)
 	/* Raw IPv6 packet dispatch value */
 	data[0] = 0x41;
 
-#if 0
 	/* Send 3 packets with 1 seconds delay */
 	for (i=0; i < 3; i++) {
 		*payload = i;
@@ -119,7 +119,6 @@ static void linux_read_thread(void *dev_data)
 			/* What to do, what to do? */
 		}
 	}
-#endif
 
 #if 0
 	/* Send 1 big packet */
