@@ -103,6 +103,7 @@ static void linux_read_thread(void *dev_data)
 	/* Raw IPv6 packet dispatch value */
 	data[0] = 0x41;
 
+#if 1
 	/* Send 3 packets with 1 seconds delay */
 	for (i=0; i < 3; i++) {
 		*payload = i;
@@ -119,8 +120,9 @@ static void linux_read_thread(void *dev_data)
 			/* What to do, what to do? */
 		}
 	}
+#endif
 
-#if 0
+#if 1
 	/* Send 1 big packet */
 	for (i=0; i < 200; i++) {
 		*payload++ = (uint8_t)i;

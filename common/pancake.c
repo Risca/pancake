@@ -73,8 +73,10 @@ struct pancake_frag_hdr {
 	uint16_t tag;
 	uint8_t offset;
 };
+
 #include "pancake_internals/fragmentation.c"
 #include "pancake_internals/reassembly.c"
+#include "pancake_internals/header_compression.c"
 
 PANCSTATUS pancake_init(PANCHANDLE *handle, struct pancake_options_cfg *options_cfg, struct pancake_port_cfg *port_cfg, void *dev_data, read_callback_func read_callback)
 {
