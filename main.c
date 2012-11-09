@@ -3,6 +3,7 @@
 #include <pancake.h>
 #include <helpers.h>
 #include <netinet/ip6.h>
+#include <string.h>
 
 extern struct pancake_port_cfg linux_cfg;
 struct pancake_options_cfg my_linux_options = {
@@ -27,28 +28,61 @@ void my_read_callback(struct ip6_hdr *hdr, uint8_t *payload, uint16_t size)
 #endif
 }
 
+void populate_dummy_ipv6_header(struct ip6_hdr *hdr, uint16_t payload_length)
+{
+	/* Loopback (::1/128) */
+	struct in6_addr addr = {
+			0, 0, 0, 0, 0, 0, 0, 0,
+			0, 0, 0, 0, 0, 0, 0, 1};
+
+	hdr->ip6_flow	=	htonl(6 << 28);
+	hdr->ip6_plen	=	htons(payload_length);
+	hdr->ip6_nxt	=	254;
+	hdr->ip6_hops	=	2;
+
+    // Add next bytes
+	memcpy((uint8_t *)hdr + 8, &addr, 16);
+	memcpy((uint8_t *)hdr + 24, &addr, 16);
+}
+
 int main(int argc, int **argv)
 {
+	char ipstr[INET6_ADDRSTRLEN];
+	uint8_t i, timeout = 1;
+	uint8_t data[127*3];
+	uint16_t length = 1 + 40 + 2;
 	PANCSTATUS ret;
+	struct ip6_hdr 	*hdr 		= (struct ip6_hdr *)(data+1);
+	uint8_t			*payload	= data + 1 + 40;
 
-	ret = pancake_init(&my_pancake_handle, &my_linux_options, &linux_cfg, stdout, my_read_callback);
+	/* Raw IPv6 packet dispatch value */
+	data[0] = 0x41;
+
+	if (argc > 1) {
+		strcpy(ipstr, (char *) argv[1]);
+	} else {
+		strcpy(ipstr, "::");
+	}
+
+	ret = pancake_init(&my_pancake_handle, &my_linux_options, &linux_cfg, ipstr, my_read_callback);
 	if (ret != PANCSTATUS_OK) {
 		printf("main.c: pancake failed to initialize!\n");
 	}
 
-#if 0
-	ret = pancake_write_test(my_pancake_handle);
-	if (ret != PANCSTATUS_OK) {
-		printf("pancake_write_test failed!\n");
+	if (argc > 1) {
+		/* Send 3 packets with 1 seconds delay */
+		for (i=0; i < 3; i++) {
+			*payload = i;
+			*(payload+1) = 255-i;
+			populate_dummy_ipv6_header(hdr, 2);
+			sleep(timeout);
+			ret = pancake_send(my_pancake_handle, hdr, payload, length);
+			if (ret != PANCSTATUS_OK) {
+				/* What to do, what to do? */
+			}
+		}
 	}
-#endif
 
-#if 1
-	ret = pancake_reassembly_test(my_pancake_handle);
-	if (ret != PANCSTATUS_OK) {
-		printf("pancake_write_test failed!\n");
-	}
-#endif
 	pancake_destroy(my_pancake_handle);
 
 	return EXIT_SUCCESS;

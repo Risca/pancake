@@ -1,0 +1,2 @@
+LDFLAGS	+=	-lpthread -g
+CFLAGS	+=	-g -I/usr/include

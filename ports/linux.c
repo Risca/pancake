@@ -66,7 +66,7 @@ void pancake_print_raw_bits(FILE *out, uint8_t *bytes, size_t length)
 	}
 }
 
-static void populate_dummy_ipv6_header(struct ip6_hdr *hdr, uint16_t payload_length)
+void populate_dummy_ipv6_header(struct ip6_hdr *hdr, uint16_t payload_length)
 {
 	/* Loopback (::1/128) */
 	struct in6_addr addr = {
