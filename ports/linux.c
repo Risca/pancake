@@ -24,8 +24,15 @@ struct pancake_port_cfg linux_cfg = {
 	.destroy_func = linux_destroy_func,
 };
 
+#if PANC_HAVE_PRINTF != 0
+#define pancake_fprintf(...) fprintf(__VA_ARGS__)
+#else
+#define pancake_fprintf(...) {}
+#endif
+
 void pancake_print_raw_bits(FILE *out, uint8_t *bytes, size_t length)
 {
+#if PANC_HAVE_PRINTF != 0
 	uint8_t bit;
 	uint16_t i;
 	uint8_t j;
@@ -64,6 +71,7 @@ void pancake_print_raw_bits(FILE *out, uint8_t *bytes, size_t length)
 		}
 		fputs("\n", out);
 	}
+#endif
 }
 
 static void populate_dummy_ipv6_header(struct ip6_hdr *hdr, uint16_t payload_length)
@@ -114,7 +122,7 @@ static void linux_read_thread(void *dev_data)
 #else
 		sleep(timeout);
 #endif
-		fprintf(out, "linux.c: Patching incoming packet to pancake_process_data()\n");
+		pancake_fprintf(out, "linux.c: Patching incoming packet to pancake_process_data()\n");
 		ret = pancake_process_data(dev_data, NULL, NULL, data, length);
 		if (ret != PANCSTATUS_OK) {
 			/* What to do, what to do? */
@@ -129,7 +137,7 @@ static void linux_read_thread(void *dev_data)
 	}
 	populate_dummy_ipv6_header(hdr, 200);
 	length = 200 + 1 + 40;
-	fprintf(out, "linux.c: Patching incoming packet to pancake_process_data()\n");
+	pancake_fprintf(out, "linux.c: Patching incoming packet to pancake_process_data()\n");
 	ret = pancake_process_data(dev_data, NULL, NULL, data, length);
 	if (ret != PANCSTATUS_OK) {
 		/* What to do, what to do? */

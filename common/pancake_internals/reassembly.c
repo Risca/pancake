@@ -246,6 +246,13 @@ PANCSTATUS pancake_reassembly_test(PANCHANDLE handle)
 
 	pancake_printf("pancake_reassembly_test(): Initiating reassembly test\n");
 
+	populate_fragmented_packets();
+	pancake_printf("Packet #1:\n");
+	pancake_print_raw_bits(NULL, fragmented_packet[0], 102);
+	pancake_printf("Packet #2:\n");
+	pancake_print_raw_bits(NULL, fragmented_packet[1], 102);
+	pancake_printf("Packet #3:\n");
+	pancake_print_raw_bits(NULL, fragmented_packet[2], 51);
 	/* Memory test */
 	for (i = 0; i < PANC_MAX_CONCURRENT_REASSEMBLIES; i++) {
 		/* Start fresh and change tag (LSB) */
@@ -292,6 +299,8 @@ PANCSTATUS pancake_reassembly_test(PANCHANDLE handle)
 			goto err_out;
 		}
 	}
+	pancake_printf("Reassembled packet:\n");
+	pancake_print_raw_bits(NULL, buf->data, buf->octets_received);
 
 	pancake_printf("pancake_reassembly_test(): Reassembly test successful\n");
 	return PANCSTATUS_OK;
