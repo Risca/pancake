@@ -101,6 +101,7 @@ PANCSTATUS pancake_send(PANCHANDLE handle, struct ip6_hdr *hdr, uint8_t *payload
 	uint16_t length;
 	struct pancake_main_dev *dev;
 	struct pancake_compressed_ip6_hdr compressed_ip6_hdr;
+	float compressed_ip6_hdr_size_percent;
 	compressed_ip6_hdr.hdr_data = data;
 	PANCSTATUS ret;
 
@@ -115,6 +116,11 @@ PANCSTATUS pancake_send(PANCHANDLE handle, struct ip6_hdr *hdr, uint8_t *payload
 
 	/* Below this point we assume a lot! */
 	pancake_compress_header(hdr, &compressed_ip6_hdr);
+	
+	// Print performance of header compression
+	compressed_ip6_hdr_size_percent = (float) compressed_ip6_hdr.size;
+	compressed_ip6_hdr_size_percent = compressed_ip6_hdr_size_percent/40*100;
+	printf("Header compressed to %.2f%% of original (%i/%i bytes)\n", compressed_ip6_hdr_size_percent, compressed_ip6_hdr.size, 40);
 
 	// Test diff
 	struct ip6_hdr hdr2;

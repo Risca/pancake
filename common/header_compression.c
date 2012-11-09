@@ -8,7 +8,7 @@
     #include <pthread.h>
 #endif
 
-uint8_t link_local_prefix[] = {0, 0, 0, 0, 0, 0, 0, 0}; // 64 bits
+uint8_t link_local_prefix[] = {0xfe, 0x80, 0, 0, 0, 0, 0, 0}; // 64 bits
 
 /**
  * Compresses an IPv6 header
@@ -288,7 +288,10 @@ PANCSTATUS pancake_decompress_header(struct pancake_compressed_ip6_hdr *compress
 		switch(*data & (0x3 << 4)) {
 			// 128 bits. The full address is carried in-line
 			case (0x0 << 4):
-				goto not_implemented;											// NOT IMPLEMENTED
+				for(i = 0; i < ip_len; i += 1) {
+					hdr->ip6_src.s6_addr[i] = *(inline_data + i);
+				}
+				inline_data += ip_len;
 				break;
 			
 			// 64 bits. The first 64-bits of the address are elided.
@@ -365,13 +368,10 @@ PANCSTATUS pancake_decompress_header(struct pancake_compressed_ip6_hdr *compress
 			
 			// 128 bits.  The full address is carried in-line.
 			case 0x0:
-				//goto not_implemented;		 									// NOT IMPLEMENTED
-				
 				// Copy whole adress to inline data
-				for(i = 0; i < ip_len; i += 1) {
+				for(i=0; i < ip_len; i += 1) {
 					hdr->ip6_dst.s6_addr[i] = *(inline_data + i);
 				}
-				
 				inline_data += ip_len;
 				
 				break;
@@ -460,8 +460,6 @@ PANCSTATUS pancake_diff_header(struct ip6_hdr *origin_hdr, struct ip6_hdr *decom
     uint8_t i = 0;
     PANCSTATUS status = PANCSTATUS_OK;
 
-    printf("%s", "Diff headers origin/decompressed\n");
-
     // Check flow bits
     if (origin_hdr->ip6_flow != decompressed_hdr->ip6_flow) {
         printf("Flow ID not equal, origin: %x, decompressed: %x\n", ntohl(origin_hdr->ip6_flow), ntohl(decompressed_hdr->ip6_flow));
@@ -545,14 +543,11 @@ static uint8_t compress_address(struct in6_addr address, uint8_t *inline_data)
 		// Check if addresses are equal
 		if(link_local_prefix[i] != address.s6_addr[i]) {
 			// Must use full address
-			//*data &= ~(0x3 << 0); // Clear bits
 			
 			// Copy full adress to inline data
 			for(i = 0; i < 16; i += 1) {
 				*(inline_data + i) = address.s6_addr[i];
 			}
-			
-			printf("%s", "hello\n\n\n\n");
 			
 			return 16;
 		}

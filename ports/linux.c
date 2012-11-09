@@ -27,7 +27,7 @@ static void populate_dummy_ipv6_header(struct ip6_hdr *hdr, uint16_t payload_len
 {
 	/* Loopback (::1/128) */
 	struct in6_addr addr = {
-			0, 0, 0, 0, 0, 0, 0, 0,
+			0xfe, 0x80, 0, 0, 0, 0, 0, 0,
 			0, 0, 0, 0xff, 0xfe, 0, 0, 1};
 
 	// Version + Traffic Control [ECN(2) + DSCP(6)] + Flow id 26
@@ -58,7 +58,7 @@ static void linux_read_thread(void *dev_data)
 	uint8_t			*payload	= data+40;
 
 	/* Send 10 packets with 5 seconds delay */
-	for (i=0; i < 10; i++) {
+	for (i=0; i < 1; i++) {
 		*payload = i;
 		*(payload+1) = 255-i;
 		populate_dummy_ipv6_header(hdr, 2);
