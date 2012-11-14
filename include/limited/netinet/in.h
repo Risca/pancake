@@ -27,6 +27,8 @@ struct sockaddr_in6 {
 };
 
 typedef uint32_t in_addr_t;
+
+#ifndef _WIN32
 struct in_addr
 {
 	in_addr_t s_addr;
@@ -51,5 +53,6 @@ struct in_addr
 # define htonl(x)	panc_bswap_32 (x)
 # define htons(x)	panc_bswap_16 (x)
 #endif
+#endif /* _WIN32 */
 
 #endif /* _NETINET_IN_H */

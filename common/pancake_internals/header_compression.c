@@ -9,7 +9,7 @@
     #include <pthread.h>
 #endif
 
-uint8_t link_local_prefix[] = {0xfe, 0x80, 0, 0, 0, 0, 0, 0}; // 64 bits
+static const uint8_t LINK_LOCAL_PREFIX[] = {0xfe, 0x80, 0, 0, 0, 0, 0, 0}; // 64 bits
 
 /**
  * Compress ipv6 address
@@ -19,10 +19,10 @@ static uint8_t compress_address(struct in6_addr address, uint8_t *inline_data)
 {
 	uint8_t i;
 
-    // Check if 64 first bits are link_local_prefix
+    // Check if 64 first bits are LINK_LOCAL_PREFIX
     for(i = 0; i < 8 ; i += 1) {
 		// Check if addresses are equal
-		if(link_local_prefix[i] != address.s6_addr[i]) {
+		if(LINK_LOCAL_PREFIX[i] != address.s6_addr[i]) {
 			// Must use full address
 
 			// Copy full adress to inline data
@@ -360,7 +360,7 @@ PANCSTATUS pancake_decompress_header(struct pancake_compressed_ip6_hdr *compress
 				
 				// First 64 bits from link-local prefix
 				for(i = 0; i < (ip_len/2); i += 1) {
-					hdr->ip6_src.s6_addr[i] = link_local_prefix[i];
+					hdr->ip6_src.s6_addr[i] = LINK_LOCAL_PREFIX[i];
 				}
 				
 				// Least 64 bits from inline data
@@ -379,7 +379,7 @@ PANCSTATUS pancake_decompress_header(struct pancake_compressed_ip6_hdr *compress
 			
 				// First 64 bits from link-local prefix
 				for(i = 0; i < 8; i += 1) {
-					hdr->ip6_src.s6_addr[i] = link_local_prefix[i];
+					hdr->ip6_src.s6_addr[i] = LINK_LOCAL_PREFIX[i];
 				}
 				
 				// Static
@@ -441,7 +441,7 @@ PANCSTATUS pancake_decompress_header(struct pancake_compressed_ip6_hdr *compress
 			case 0x1:
 				// First 64 bits from link-local prefix
 				for(i = 0; i < (ip_len/2); i += 1) {
-					hdr->ip6_dst.s6_addr[i] = link_local_prefix[i];
+					hdr->ip6_dst.s6_addr[i] = LINK_LOCAL_PREFIX[i];
 				}
 				
 				// Least 64 bits from inline data
@@ -458,7 +458,7 @@ PANCSTATUS pancake_decompress_header(struct pancake_compressed_ip6_hdr *compress
 			case 0x2:
 				// First 64 bits from link-local prefix
 				for(i = 0; i < 8; i += 1) {
-					hdr->ip6_dst.s6_addr[i] = link_local_prefix[i];
+					hdr->ip6_dst.s6_addr[i] = LINK_LOCAL_PREFIX[i];
 				}
 				
 				// Static

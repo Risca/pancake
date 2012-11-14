@@ -46,7 +46,11 @@ void my_test_function()
 		*payload = i;
 		*(payload+1) = 255-i;
 		populate_dummy_ipv6_header(hdr, 2);
+#ifdef _WIN32
+		Sleep(timeout*1000);
+#else
 		sleep(timeout);
+#endif
 		ret = pancake_send(my_pancake_handle, hdr, payload, payload_length);
 		if (ret != PANCSTATUS_OK) {
 			printf("Failed to send!\n");
@@ -59,7 +63,11 @@ void my_test_function()
 	}
 	populate_dummy_ipv6_header(hdr, 200);
 	payload_length = 200;
+#ifdef _WIN32
+	Sleep(timeout*1000);
+#else
 	sleep(timeout);
+#endif
 	ret = pancake_send(my_pancake_handle, hdr, payload, payload_length);
 	if (ret != PANCSTATUS_OK) {
 		printf("Failed to send big packet!\n");

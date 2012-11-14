@@ -12,6 +12,7 @@
 
 #ifdef _WIN32
     #include <windows.h>
+    #include <winsock.h>
 #endif
 
 /* Updated to reflect RFC6282 */
