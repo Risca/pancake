@@ -46,6 +46,7 @@ uint32_t timer_counter = 0;
 uint8_t active_event_call = FALSE;
 
 //##### Globals #####
+uint8_t online = FALSE;
 uint8_t port_process_mac_event_task_id;
 macPanDesc_t scan_pan_results[PORT_MAC_MAX_RESULTS];
 
@@ -73,7 +74,10 @@ static PANCSTATUS cc2530_init_func(void *dev_data)
 	
 	update_timer_init();
 	
-	port_scan_request( MAC_SCAN_ACTIVE, 3 );
+	/* Wait until online.
+	   - Either by becoming the coordinator and one device has connected.
+	   - or by becoming a device and connects to a coordinator. */
+	while( !online );
 	
 	return PANCSTATUS_OK;
 err_out:
@@ -82,6 +86,8 @@ err_out:
 
 static PANCSTATUS cc2530_write_func(void *dev_data, uint8_t *data, uint16_t length) 
 {
+  	// Send to hard-coded address
+    port_send_data_request(data, length, TRUE, PORT_COORD_SHORT_ADDR);
   
 	return PANCSTATUS_OK;
 err_out:
@@ -102,7 +108,7 @@ err_out:
 static void update_timer_init(void)
 {
 	T4IE = 1;
-	T4CTL = 0xF8; // Start free-running clock with 128 div
+	T4CTL = 0xF8; // Start free-running clock with 128 div, running at 32kHz (?)
 	T4CCTL0 = 0; 
 	T4CCTL1 = 0;
 	IRCTL = 0; 
@@ -115,12 +121,12 @@ HAL_ISR_FUNCTION( Timer4_ISR, T4_VECTOR )
 	if( T4OVFIF & 0x01 )
 	{
 		timer_counter++;
-		if( timer_counter > 0 ) {
+		if( timer_counter > 0 ) { // TODO: Modify to run at a configured rate.
 			timer_counter = 0;
 			if( FALSE == active_event_call ) {
 				active_event_call = TRUE;
 				
-				HalLedSet( HAL_LED_3, HAL_LED_MODE_TOGGLE );
+				//HalLedSet( HAL_LED_3, HAL_LED_MODE_TOGGLE );
 				osal_run_system();
 				
 				active_event_call = FALSE;

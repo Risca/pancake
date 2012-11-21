@@ -83,8 +83,5 @@ void init_port_process_event( uint8_t task_id )
 	{
 	msa_Data2[i] = 0xEE;
 	}
-	
-	msa_BeaconOrder = MSA_MAC_BEACON_ORDER;
-	msa_SuperFrameOrder = MSA_MAC_SUPERFRAME_ORDER;
 #endif
 }

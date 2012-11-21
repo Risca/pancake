@@ -5,11 +5,18 @@
 #include "mac_api.h"
 
 
-#define PORT_MAC_CHANNEL MAC_CHAN_11 
-#define PORT_MAC_MAX_RESULTS       5
-#define PORT_EBR_PERMITJOINING    TRUE
-#define PORT_EBR_LINKQUALITY      1
-#define PORT_EBR_PERCENTFILTER    0xFF
+
+#define PORT_PAN_ID             	0x11CC        /* PAN ID */
+#define PORT_COORD_SHORT_ADDR		0xAABB        /* Coordinator short address */
+#define PORT_DEV_SHORT_ADDR			0x0000
+#define PORT_MAX_DEVICE_NUM			32
+#define PORT_MAC_CHANNEL 			MAC_CHAN_11 
+#define PORT_MAC_BEACON_ORDER      	15            /* Setting beacon order to 15 will disable the beacon */
+#define PORT_MAC_SUPERFRAME_ORDER  	15            /* Setting superframe order to 15 will disable the superframe */
+#define PORT_MAC_MAX_RESULTS       	5
+#define PORT_EBR_PERMITJOINING    	TRUE
+#define PORT_EBR_LINKQUALITY      	1
+#define PORT_EBR_PERCENTFILTER    	0xFF
 
 #undef POWER_SAVING
 
@@ -18,12 +25,23 @@
 //_____ G L O B A L S______________________________
 extern uint8_t port_process_mac_event_task_id;
 extern macPanDesc_t scan_pan_results[PORT_MAC_MAX_RESULTS];
+extern uint8_t online;
 
 
 
 //_____ F U N C T I O N   D E C L A R A T I O N S______________________________
-void port_init_coordinator();
+//##### MAC init functions ####################################################
+void port_init_coordinator(void);
+void port_init_device(void);
 
-void port_scan_request(uint8_t scan_type, uint8_t scan_duration);
+//##### MAC send/request functions #################################################
+void port_send_associate_request(void);
+void port_send_scan_request(uint8_t scan_type, uint8_t scan_duration);
+void port_send_associate_response( macCbackEvent_t* pData );
+void port_send_data_request(uint8* data, uint8 dataLength, bool directMsg, uint16 dstShortAddr);
+
+//##### MAC receive functions #################################################
+void port_beacon_received( macCbackEvent_t* pData );
+void port_associate_response_received(void);
 
 #endif

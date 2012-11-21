@@ -19,6 +19,10 @@
 #include "OnBoard.h"
 #include "OSAL_PwrMgr.h"
 
+#include <string.h>
+
+
+
 /* This function invokes osal_start_system */
 void msaOSTask(void *task_parameter);
 
@@ -75,6 +79,13 @@ int main(int argc, int **argv)
 	if (ret != PANCSTATUS_OK) {
 		goto err_out;
 	}
+	
+	// Create the hello world package
+	uint8_t hello_world[] = "Hello, world!";
+	uint8_t bogus_packet[64];
+	memcpy(bogus_packet+40, hello_world, sizeof(hello_world));
+	
+	ret = pancake_send_packet(my_pancake_handle, bogus_packet, sizeof(bogus_packet));
 	
 #if 0
 	ret = pancake_write_test(my_pancake_handle);

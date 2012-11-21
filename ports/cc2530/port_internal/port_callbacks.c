@@ -44,12 +44,14 @@ uint16 port_process_mac_event(uint8 taskId, uint16 events)
       {
 		/* Got an association request from another device. */
         case MAC_MLME_ASSOCIATE_IND:
-		  // TO BE IMPLEMENTED
+		  pData = (macCbackEvent_t *) pMsg;
+		  
+		  port_send_associate_response( pData );
           break;
 
 		/* We are now associated to a cordinator. */
         case MAC_MLME_ASSOCIATE_CNF:
-		  // TO BE IMPLEMENTED
+		  port_associate_response_received();
           break;
 
 		/* Received on various occations - Probably no need to implement. */
@@ -58,14 +60,20 @@ uint16 port_process_mac_event(uint8 taskId, uint16 events)
 
 		/* Got a beacon frame */
         case MAC_MLME_BEACON_NOTIFY_IND:
-		  //HalLedBlink (HAL_LED_4, 0, 40, 1000);
+		  pData = (macCbackEvent_t *) pMsg;
 		  
-		  // TO BE IMPLEMENTED
+		  port_beacon_received( pData );
           break;
 
 		/* Completed setting up the the coordinator of a PAN */
         case MAC_MLME_START_CNF:
-		  // TO BE IMPLEMENTED
+		  /* Retrieve the message */
+          pData = (macCbackEvent_t *) pMsg;
+          /* Set some indicator for the Coordinator */
+          if (pData->startCnf.hdr.status == MAC_SUCCESS)
+          {
+            HalLedSet (HAL_LED_4, HAL_LED_MODE_ON);
+          }
           break;
 
 		/* Scan completed */
@@ -74,10 +82,18 @@ uint16 port_process_mac_event(uint8 taskId, uint16 events)
           pData = (macCbackEvent_t *) pMsg;
 
           /* If there is no other on the channel or no other with sampleBeacon */
-          if ((pData->scanCnf.resultListSize == 0) && (pData->scanCnf.hdr.status == MAC_NO_BEACON))
-          {
-            //HalLedBlink (HAL_LED_4, 0, 40, 1000);
+          if ((pData->scanCnf.resultListSize == 0) && (pData->scanCnf.hdr.status == MAC_NO_BEACON)) {
+            // Start coordinator
+			port_init_coordinator();
           }
+		  else {
+			// Start device and try to associate
+			port_init_device();
+			
+			port_send_associate_request();
+		  }
+		
+			
           break;
 
 		/* Status of last transmission */
@@ -88,6 +104,7 @@ uint16 port_process_mac_event(uint8 taskId, uint16 events)
 		/* Data received from the MAC */
         case MAC_MCPS_DATA_IND:
           // TO BE IMPLEMENTED
+		  HalLedBlink(HAL_LED_4, 0, 40, 1000);
           break;
       }
 
@@ -104,10 +121,10 @@ uint16 port_process_mac_event(uint8 taskId, uint16 events)
 
 void port_process_key_event(uint8 keys, uint8 state)
 {
-  if ( keys & HAL_KEY_SW_1 )
-  {
-	  HalLedSet( HAL_LED_2, HAL_LED_MODE_ON );
-	  
-  }
+	if ( keys & HAL_KEY_SW_1 )
+	{
+		port_send_scan_request( MAC_SCAN_ACTIVE, 3 );
+	  	//HalLedSet( HAL_LED_2, HAL_LED_MODE_ON );
+	}
 
 }
