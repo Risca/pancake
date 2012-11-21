@@ -86,7 +86,7 @@ int main(int argc, char **argv)
 		strcpy(ipstr, "::");
 	}
 
-	ret = pancake_init(&my_pancake_handle, &my_linux_options, &linux_cfg, ipstr, my_read_callback);
+	ret = pancake_init(&my_pancake_handle, &my_linux_options, &linux_cfg, stdout, my_read_callback);
 	if (ret != PANCSTATUS_OK) {
 		printf("main.c: pancake failed to initialize!\n");
 		return EXIT_FAILURE;
@@ -95,6 +95,8 @@ int main(int argc, char **argv)
 	if (argc > 1) {
 		my_test_function();
 	}
+
+	
 
 	pancake_destroy(my_pancake_handle);
 
