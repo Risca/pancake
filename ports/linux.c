@@ -29,6 +29,111 @@ struct pancake_port_cfg linux_cfg = {
 #define pancake_fprintf(...) {}
 #endif
 
+
+#ifdef _WIN32
+
+	void color_output(HANDLE hConsole, int COLOR) 
+	{
+		SetConsoleTextAttribute(hConsole, COLOR);
+	}
+	
+	#define FOREGROUND_CYAN FOREGROUND_BLUE | FOREGROUND_GREEN | FOREGROUND_INTENSITY
+	#define FOREGROUND_PINK FOREGROUND_BLUE | FOREGROUND_RED | FOREGROUND_INTENSITY
+	#define FOREGROUND_YELLOW FOREGROUND_GREEN | FOREGROUND_RED | FOREGROUND_INTENSITY
+	
+	#define FOREGROUND_PURPLE FOREGROUND_BLUE | FOREGROUND_RED
+	#define FOREGROUND_TURCOSE FOREGROUND_BLUE | FOREGROUND_GREEN
+	#define FOREGROUND_DARK_YELLOW FOREGROUND_RED | FOREGROUND_GREEN
+
+#else
+	// Defines for colors here
+#endif
+
+void pancake_pretty_print(FILE *out, uint8_t *bytes, size_t length, struct color_change *color_positions, uint8_t number_of_colors)
+{
+	#ifdef _WIN32
+		HANDLE hConsole;
+		hConsole = GetStdHandle(STD_OUTPUT_HANDLE);
+	#endif;
+	uint8_t bit;
+	uint16_t i;
+	uint8_t j;
+	struct color_change *current_color_change = color_positions;
+	
+	if (out == NULL) {
+		out = stdout;
+	}
+	
+	// Output what the colors describe
+	for(i=0; i<number_of_colors; i++) {
+		color_output(hConsole, color_positions[i].color);
+		pancake_fprintf(out, "%s\n", color_positions[i].description);
+	}
+	
+	// White
+	color_output(hConsole, FOREGROUND_BLUE | FOREGROUND_RED | FOREGROUND_GREEN);
+	
+	// Print first line
+	if(length == 4) {
+		pancake_fprintf(out, "+-----------+-----------+-----------+-----------+");
+	}
+	else {
+		pancake_fprintf(out, "+");
+		for (i=0; i < length % 4; i++) {
+			pancake_fprintf(out, "-----------+");
+		}
+		pancake_fprintf(out, "\n");
+	}
+	
+	for (i=0; i < length; i++) {
+		// White
+		color_output(hConsole, FOREGROUND_BLUE | FOREGROUND_RED | FOREGROUND_GREEN);
+		pancake_fprintf(out, "|");
+		
+		// Change color
+		if(i > 0 && current_color_change->position == i) {
+			current_color_change++;
+		}
+		
+		color_output(hConsole, current_color_change->color);
+		
+		for (j=0; j < 8; j++) {
+			
+			if (j == 0) {
+				pancake_fprintf(out, " ");
+			}
+			
+			bit = ( (*bytes) >> (7-j%8) ) & 0x01;
+			pancake_fprintf(out, "%i", bit);
+
+			/* Place a space between every bit except last */
+			if (j == 3 || j==7) {
+				pancake_fprintf(out, " ");
+			}
+		}
+
+		if ( (i+1) % 4 == 0 ) {
+			// White
+			color_output(hConsole, FOREGROUND_BLUE | FOREGROUND_RED | FOREGROUND_GREEN);
+			pancake_fprintf(out, "|\n+-----------+-----------+-----------+-----------+\n");
+		}
+		bytes++;
+	}
+	
+	if (length % 4 != 0) {
+		// White
+		color_output(hConsole, FOREGROUND_BLUE | FOREGROUND_RED | FOREGROUND_GREEN);
+		pancake_fprintf(out, "|\n+");
+		for (i=0; i < length % 4; i++) {
+			pancake_fprintf(out, "-----------+");
+		}
+		pancake_fprintf(out, "\n");
+	}
+	
+	// Reset to white
+	color_output(hConsole, FOREGROUND_BLUE | FOREGROUND_RED | FOREGROUND_GREEN);
+}
+
 void pancake_print_raw_bits(FILE *out, uint8_t *bytes, size_t length)
 {
 #if PANC_HAVE_PRINTF != 0
@@ -110,7 +215,7 @@ static void linux_read_thread(void *dev_data)
 	/* Raw IPv6 packet dispatch value */
 	data[0] = 0x41;
 
-#if 1
+#if 0
 	/* Send 3 packets with 1 seconds delay */
 	for (i=0; i < 3; i++) {
 		*payload = i;
@@ -129,7 +234,7 @@ static void linux_read_thread(void *dev_data)
 	}
 #endif
 
-#if 1
+#if 0
 	/* Send 1 big packet */
 	for (i=0; i < 200; i++) {
 		*payload++ = (uint8_t)i;
@@ -159,7 +264,7 @@ static PANCSTATUS linux_write_func(void *dev_data, struct pancake_ieee_addr *des
 	FILE *out = (FILE*)dev_data;
 
 	fputs("linux.c: Transmitting the following packet to the ether:\n", out);
-	pancake_print_raw_bits(out, data, length);
+	//pancake_print_raw_bits(out, data, length);
 
 	return PANCSTATUS_OK;
 }

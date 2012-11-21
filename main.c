@@ -5,6 +5,7 @@
 #include <netinet/ip6.h>
 #include <string.h>
 #include <unistd.h>
+#include <windows.h>
 
 extern struct pancake_port_cfg linux_cfg;
 struct pancake_options_cfg my_linux_options = {
@@ -15,17 +16,15 @@ PANCHANDLE my_pancake_handle;
 
 void my_read_callback(struct ip6_hdr *hdr, uint8_t *payload, uint16_t size)
 {
-	if (hdr == NULL) {
-		printf("main.c: Got message: %s\n", payload);
-		return;
-	}
 
 #if 0
 	printf("main.c: Looping incoming packet to output again\n");
 	pancake_send(my_pancake_handle, hdr, payload, size);
 #else
 	printf("main.c: We received the following packet:\n");
-	pancake_print_raw_bits(stdout, payload, size);
+	uint8_t color_positions[] = {3, 4, 5};
+	//pancake_pretty_print(stdout, payload, size, &color_positions, 3);
+	//pancake_print_raw_bits(stdout, payload, size);
 #endif
 }
 
@@ -78,7 +77,8 @@ int main(int argc, char **argv)
 {
 	char ipstr[INET6_ADDRSTRLEN];
 	PANCSTATUS ret;
-
+	
+	
 	if (argc > 1) {
 		strcpy(ipstr, (char *) argv[1]);
 		printf("Will connect to :\t%s\n",ipstr);
@@ -92,9 +92,9 @@ int main(int argc, char **argv)
 		return EXIT_FAILURE;
 	}
 
-	if (argc > 1) {
+	//if (argc > 1) {
 		my_test_function();
-	}
+	//}
 
 	
 

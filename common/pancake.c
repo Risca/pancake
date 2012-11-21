@@ -182,6 +182,7 @@ PANCSTATUS pancake_send(PANCHANDLE handle, struct ip6_hdr *hdr, uint8_t *payload
 	compressed_ip6_hdr.hdr_data = raw_data;
 	uint16_t frame_overhead;
 	PANCSTATUS ret;
+	struct color_change color_positions[2];
 
 	/* Sanity check */
 	if ( 	handle < 0 ||
@@ -210,8 +211,10 @@ PANCSTATUS pancake_send(PANCHANDLE handle, struct ip6_hdr *hdr, uint8_t *payload
 	/* Check if fragmentation is needed */
 	frame_overhead = calculate_frame_overhead(dev, &compressed_ip6_hdr);
 	if (frame_overhead + aMaxFrameOverhead + payload_length > aMaxPHYPacketSize) {
+		
 		/* pancake_send_fragmented() sends the whole payload, but in multiple packets */
 		ret = pancake_send_fragmented(dev, raw_data, &compressed_ip6_hdr, payload, payload_length);
+
 		if (ret != PANCSTATUS_OK) {
 			goto err_out;
 		}
@@ -225,6 +228,18 @@ PANCSTATUS pancake_send(PANCHANDLE handle, struct ip6_hdr *hdr, uint8_t *payload
 		memcpy((void*)(raw_data + compressed_ip6_hdr.size + 1), (void*)payload, payload_length);
 
 		length = frame_overhead+payload_length;
+		
+		/* Print packet */
+		color_positions[0].color = FOREGROUND_BLUE | FOREGROUND_INTENSITY;
+		color_positions[0].position = 0;
+		color_positions[0].description = "Header";
+		
+		color_positions[1].color = FOREGROUND_GREEN | FOREGROUND_INTENSITY;
+		color_positions[1].position = 6; //compressed_ip6_hdr.size - 1
+		color_positions[1].description = "Payload";
+		
+		pancake_pretty_print(dev->dev_data, raw_data, length, &color_positions, 2);
+		
 		ret = dev->cfg->write_func(dev->dev_data, NULL, raw_data, length);
 		if (ret != PANCSTATUS_OK) {
 			goto err_out;
@@ -306,7 +321,7 @@ PANCSTATUS pancake_process_data(void *dev_data, struct pancake_ieee_addr *src, s
 	};
 
 	/* Relay data to upper levels */
-	dev->read_callback((struct ip6_hdr *)1, payload, payload_length);
+	dev->read_callback(NULL, payload, payload_length);
 	ret = PANCSTATUS_OK;
 
 out:

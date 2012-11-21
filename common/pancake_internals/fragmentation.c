@@ -57,6 +57,10 @@ PANCSTATUS pancake_send_fragmented(struct pancake_main_dev *dev, uint8_t *raw_da
 	uint16_t space_available;
 	uint16_t offset = 0;
 	uint8_t frag_hdr_len = 5;
+	
+	uint8_t color_positions[] = {3, 5, 8};
+	
+	fprintf(stdout, "hello moto moto");
 
 	/* Calculate some stuff we'll need later */
 	frame_overhead = calculate_frame_overhead(dev, comp_hdr);
@@ -89,6 +93,9 @@ PANCSTATUS pancake_send_fragmented(struct pancake_main_dev *dev, uint8_t *raw_da
 		/* Adjust counters */
 		offset      += space_available;
 		payload_len -= space_available;
+		
+		/* Print packet */
+		pancake_pretty_print(dev->dev_data, raw_data, packet_size, &color_positions, 3);
 
 		/* Time to pay a little visit to the transmission fairy */
 		ret = dev->cfg->write_func(dev->dev_data, NULL, raw_data, packet_size);
@@ -100,7 +107,7 @@ PANCSTATUS pancake_send_fragmented(struct pancake_main_dev *dev, uint8_t *raw_da
 	/* Last packet is a little special */
 	/* Fill in fragmentation header */
 	populate_fragmentation_header(frag_hdr, dgram_len, offset);
-
+	
 	/* Copy payload */
 	memcpy((void*)(raw_data + dgram_hdr_len), (void*)(payload + (offset - comp_hdr->size)), payload_len);
 
