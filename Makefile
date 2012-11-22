@@ -1,6 +1,7 @@
 CC			:=	gcc
 LD			:=	gcc
 RM			:=	rm -rf
+CTAGS			:=	ctags
 TOPDIR		:=	$(shell pwd)
 INCLUDEDIR	+=	$(TOPDIR)/include
 COMMONDIR	:=	$(TOPDIR)/common
@@ -53,8 +54,12 @@ $(OBJECTS): | $(BUILDDIR)
 $(BUILDDIR):
 	@test -d $(BUILDDIR) || mkdir $(BUILDDIR)
 
+tags:
+	@$(CTAGS) $(shell find -name "*.c")
+
 clean:
 	$(RM) $(OBJECTS) $(TARGETS)
 
 distclean: clean
 	rm -rf $(BUILDDIR)
+	$(RM) tags
