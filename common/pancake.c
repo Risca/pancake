@@ -2,7 +2,7 @@
 #include <stddef.h>
 #include <string.h>
 
-#if PANC_USE_HELPERS != 0
+#if PANC_HELPERS_ENABLED != 0
 #include <helpers.h>
 #endif
 
@@ -182,7 +182,7 @@ PANCSTATUS pancake_send(PANCHANDLE handle, struct ip6_hdr *hdr, uint8_t *payload
 	compressed_ip6_hdr.hdr_data = raw_data;
 	uint16_t frame_overhead;
 	PANCSTATUS ret;
-	struct color_change color_positions[2];
+	struct color_change color_positions[3];
 
 	/* Sanity check */
 	if ( 	handle < 0 ||
@@ -230,15 +230,21 @@ PANCSTATUS pancake_send(PANCHANDLE handle, struct ip6_hdr *hdr, uint8_t *payload
 		length = frame_overhead+payload_length;
 		
 		/* Print packet */
-		color_positions[0].color = FOREGROUND_BLUE | FOREGROUND_INTENSITY;
-		color_positions[0].position = 0;
-		color_positions[0].description = "Header";
+		color_positions[0].color = PANC_COLOR_RED;
+		color_positions[0].position = 1;
+		color_positions[0].description = "6LoWPAN header";
 		
-		color_positions[1].color = FOREGROUND_GREEN | FOREGROUND_INTENSITY;
-		color_positions[1].position = 6; //compressed_ip6_hdr.size - 1
-		color_positions[1].description = "Payload";
+		color_positions[1].color = PANC_COLOR_GREEN;
+		color_positions[1].position = 1 + compressed_ip6_hdr.size;
+		color_positions[1].description = "IPv6 header";
 		
-		pancake_pretty_print(dev->dev_data, raw_data, length, &color_positions, 2);
+		color_positions[2].color = PANC_COLOR_BLUE;
+		color_positions[2].position = length;
+		color_positions[2].description = "Payload";
+
+#if PANC_DEMO_TWO != 0
+		pancake_pretty_print(dev->dev_data, raw_data, length, color_positions, 3);
+#endif
 		
 		ret = dev->cfg->write_func(dev->dev_data, NULL, raw_data, length);
 		if (ret != PANCSTATUS_OK) {

@@ -31,30 +31,51 @@ struct pancake_port_cfg linux_cfg = {
 
 
 #ifdef _WIN32
+static WORD colors[] = {
+	FOREGROUND_RED | FOREGROUND_INTENSITY,                    /* Red */
+	FOREGROUND_GREEN | FOREGROUND_INTENSITY,                  /* Green */
+	FOREGROUND_RED | FOREGROUND_GREEN | FOREGROUND_INTENSITY, /* Yellow */
+	FOREGROUND_BLUE | FOREGROUND_INTENSITY                    /* Blue */
+	FOREGROUND_BLUE | FOREGROUND_RED | FOREGROUND_GREEN,      /* White */
+};
 
-	void color_output(HANDLE hConsole, int COLOR) 
-	{
-		SetConsoleTextAttribute(hConsole, COLOR);
-	}
-	
-	#define FOREGROUND_CYAN FOREGROUND_BLUE | FOREGROUND_GREEN | FOREGROUND_INTENSITY
-	#define FOREGROUND_PINK FOREGROUND_BLUE | FOREGROUND_RED | FOREGROUND_INTENSITY
-	#define FOREGROUND_YELLOW FOREGROUND_GREEN | FOREGROUND_RED | FOREGROUND_INTENSITY
-	
-	#define FOREGROUND_PURPLE FOREGROUND_BLUE | FOREGROUND_RED
-	#define FOREGROUND_TURCOSE FOREGROUND_BLUE | FOREGROUND_GREEN
-	#define FOREGROUND_DARK_YELLOW FOREGROUND_RED | FOREGROUND_GREEN
+void color_output(HANDLE hConsole, int COLOR) 
+{
+	SetConsoleTextAttribute(hConsole, COLOR);
+}
+
+#define FOREGROUND_CYAN FOREGROUND_BLUE | FOREGROUND_GREEN | FOREGROUND_INTENSITY
+#define FOREGROUND_PINK FOREGROUND_BLUE | FOREGROUND_RED | FOREGROUND_INTENSITY
+#define FOREGROUND_YELLOW FOREGROUND_GREEN | FOREGROUND_RED | FOREGROUND_INTENSITY
+
+#define FOREGROUND_PURPLE FOREGROUND_BLUE | FOREGROUND_RED
+#define FOREGROUND_TURCOSE FOREGROUND_BLUE | FOREGROUND_GREEN
+#define FOREGROUND_DARK_YELLOW FOREGROUND_RED | FOREGROUND_GREEN
 
 #else
-	// Defines for colors here
+static int colors[] = {
+	31, /* Red */
+	32, /* Green */
+	33, /* Yellow */
+	34, /* Blue */
+	37, /* White */
+};
+
+void color_output(FILE *handle, PANC_COLOR color)
+{
+	fprintf(handle, "\033[1;%dm", colors[color]); 
+}
+
 #endif
 
 void pancake_pretty_print(FILE *out, uint8_t *bytes, size_t length, struct color_change *color_positions, uint8_t number_of_colors)
 {
-	#ifdef _WIN32
-		HANDLE hConsole;
-		hConsole = GetStdHandle(STD_OUTPUT_HANDLE);
-	#endif;
+#ifdef _WIN32
+	HANDLE hConsole;
+	hConsole = GetStdHandle(STD_OUTPUT_HANDLE);
+#else
+	FILE * hConsole = out;
+#endif
 	uint8_t bit;
 	uint16_t i;
 	uint8_t j;
@@ -71,11 +92,11 @@ void pancake_pretty_print(FILE *out, uint8_t *bytes, size_t length, struct color
 	}
 	
 	// White
-	color_output(hConsole, FOREGROUND_BLUE | FOREGROUND_RED | FOREGROUND_GREEN);
+	color_output(hConsole, PANC_COLOR_WHITE);
 	
 	// Print first line
-	if(length == 4) {
-		pancake_fprintf(out, "+-----------+-----------+-----------+-----------+");
+	if(length >= 4) {
+		pancake_fprintf(out, "+-----------+-----------+-----------+-----------+\n");
 	}
 	else {
 		pancake_fprintf(out, "+");
@@ -87,11 +108,12 @@ void pancake_pretty_print(FILE *out, uint8_t *bytes, size_t length, struct color
 	
 	for (i=0; i < length; i++) {
 		// White
-		color_output(hConsole, FOREGROUND_BLUE | FOREGROUND_RED | FOREGROUND_GREEN);
+		color_output(hConsole, PANC_COLOR_WHITE);
 		pancake_fprintf(out, "|");
 		
 		// Change color
-		if(i > 0 && current_color_change->position == i) {
+		// TODO: Make this less dangerous
+		while(i > 0 && current_color_change->position == i) {
 			current_color_change++;
 		}
 		
@@ -114,7 +136,7 @@ void pancake_pretty_print(FILE *out, uint8_t *bytes, size_t length, struct color
 
 		if ( (i+1) % 4 == 0 ) {
 			// White
-			color_output(hConsole, FOREGROUND_BLUE | FOREGROUND_RED | FOREGROUND_GREEN);
+			color_output(hConsole, PANC_COLOR_WHITE);
 			pancake_fprintf(out, "|\n+-----------+-----------+-----------+-----------+\n");
 		}
 		bytes++;
@@ -122,7 +144,7 @@ void pancake_pretty_print(FILE *out, uint8_t *bytes, size_t length, struct color
 	
 	if (length % 4 != 0) {
 		// White
-		color_output(hConsole, FOREGROUND_BLUE | FOREGROUND_RED | FOREGROUND_GREEN);
+		color_output(hConsole, PANC_COLOR_WHITE);
 		pancake_fprintf(out, "|\n+");
 		for (i=0; i < length % 4; i++) {
 			pancake_fprintf(out, "-----------+");
@@ -131,7 +153,7 @@ void pancake_pretty_print(FILE *out, uint8_t *bytes, size_t length, struct color
 	}
 	
 	// Reset to white
-	color_output(hConsole, FOREGROUND_BLUE | FOREGROUND_RED | FOREGROUND_GREEN);
+	color_output(hConsole, PANC_COLOR_WHITE);
 }
 
 void pancake_print_raw_bits(FILE *out, uint8_t *bytes, size_t length)
@@ -204,6 +226,7 @@ pthread_t my_thread;
 
 static void linux_read_thread(void *dev_data)
 {
+#if PANC_DEMO_TWO == 0
 	uint8_t i, timeout = 1;
 	uint8_t data[127*3];
 	uint16_t length = 1 + 40 + 2;
@@ -215,7 +238,7 @@ static void linux_read_thread(void *dev_data)
 	/* Raw IPv6 packet dispatch value */
 	data[0] = 0x41;
 
-#if 0
+#if 1
 	/* Send 3 packets with 1 seconds delay */
 	for (i=0; i < 3; i++) {
 		*payload = i;
@@ -234,7 +257,7 @@ static void linux_read_thread(void *dev_data)
 	}
 #endif
 
-#if 0
+#if 1
 	/* Send 1 big packet */
 	for (i=0; i < 200; i++) {
 		*payload++ = (uint8_t)i;
@@ -247,35 +270,39 @@ static void linux_read_thread(void *dev_data)
 		/* What to do, what to do? */
 	}
 #endif
+#endif /* Whole function */
 }
 
 static PANCSTATUS linux_init_func(void *dev_data)
 {
-    #ifdef _WIN32
+#ifdef _WIN32
+	color_output(GetStdHandle(STD_OUTPUT_HANDLE), PANC_COLOR_WHITE);
 	win_thread = CreateThread(NULL, 0, &linux_read_thread, dev_data, 0, NULL);
-	#else // Linux
+#else // Linux
 	pthread_create (&my_thread, NULL, (void *) &linux_read_thread, dev_data);
-	#endif
+	color_output(stdout, PANC_COLOR_WHITE);
+#endif
 	return PANCSTATUS_OK;
 }
 
 static PANCSTATUS linux_write_func(void *dev_data, struct pancake_ieee_addr *dest, uint8_t *data, uint16_t length)
 {
+#if PANC_DEMO_TWO == 0
 	FILE *out = (FILE*)dev_data;
 
 	fputs("linux.c: Transmitting the following packet to the ether:\n", out);
-	//pancake_print_raw_bits(out, data, length);
-
+	pancake_print_raw_bits(out, data, length);
+#endif
 	return PANCSTATUS_OK;
 }
 
 static PANCSTATUS linux_destroy_func(void *dev_data)
 {
-    #ifdef _WIN32
-    WaitForSingleObject(win_thread, INFINITE);
-	#else // Linux
+#ifdef _WIN32
+	WaitForSingleObject(win_thread, INFINITE);
+#else // Linux
 	pthread_join(my_thread, NULL);
-	#endif
+#endif
 
 	return PANCSTATUS_OK;
 }
