@@ -17,12 +17,12 @@ void populate_fragmented_packets()
 	frag_hdr = (struct pancake_frag_hdr *) &fragmented_packet[1][0];
 	frag_hdr->size = htons(240 | (DISPATCH_FRAGN << 8));
 	frag_hdr->tag = 0;
-	frag_hdr->offset = 0x61;
+	frag_hdr->offset = 0x0C;
 
 	frag_hdr = (struct pancake_frag_hdr *) &fragmented_packet[2][0];
 	frag_hdr->size = htons(240 | (DISPATCH_FRAGN << 8));
 	frag_hdr->tag = 0;
-	frag_hdr->offset = 0xC2;
+	frag_hdr->offset = 0x18;
 
 	/* Fill in IPv6 header */
 	fragmented_packet[0][4] = DISPATCH_IPv6;
@@ -41,13 +41,13 @@ void populate_fragmented_packets()
 	ip6->ip6_dst.s6_addr[i] = 1;
 
 	/* Fill in payload */
-	for (i = 45; i < 102; i++) {
+	for (i = 45; i < 101; i++) {
 		fragmented_packet[0][i] = payload++;
 	}
-	for (i = 5; i < 102; i++) {
+	for (i = 5; i < 101; i++) {
 		fragmented_packet[1][i] = payload++;
 	}
-	for (i = 5; i < 51; i++) {
+	for (i = 5; i < 53; i++) {
 		fragmented_packet[2][i] = payload++;
 	}
 }
@@ -207,10 +207,12 @@ static PANCSTATUS pancake_reassemble(struct pancake_main_dev *dev, struct pancak
 
 	/* Copy data */
 	if (frag_dispatch == DISPATCH_FRAG1) {
+		/* First packet */
 		memcpy(&buf->data[0], (data+5), data_length);
 	}
 	else {
-		memcpy(&buf->data[frag_hdr->offset], (data+5), data_length);
+		/* Subsequent packets */
+		memcpy(&buf->data[frag_hdr->offset*8], (data+5), data_length);
 	}
 	buf->octets_received += (data_length - 5);
 
@@ -248,18 +250,18 @@ PANCSTATUS pancake_reassembly_test(PANCHANDLE handle)
 
 	populate_fragmented_packets();
 	pancake_printf("Packet #1:\n");
-	pancake_print_raw_bits(NULL, fragmented_packet[0], 102);
+	pancake_print_raw_bits(NULL, fragmented_packet[0], 101);
 	pancake_printf("Packet #2:\n");
-	pancake_print_raw_bits(NULL, fragmented_packet[1], 102);
+	pancake_print_raw_bits(NULL, fragmented_packet[1], 101);
 	pancake_printf("Packet #3:\n");
-	pancake_print_raw_bits(NULL, fragmented_packet[2], 51);
+	pancake_print_raw_bits(NULL, fragmented_packet[2], 53);
 	/* Memory test */
 	for (i = 0; i < PANC_MAX_CONCURRENT_REASSEMBLIES; i++) {
 		/* Start fresh and change tag (LSB) */
 		populate_fragmented_packets();
 		fragmented_packet[0][3] = i;
 
-		ret = pancake_reassemble(dev, &buf, &addr, &addr, fragmented_packet[0], 102);
+		ret = pancake_reassemble(dev, &buf, &addr, &addr, fragmented_packet[0], 101);
 		if (ret == PANCSTATUS_NOMEM || ret == PANCSTATUS_ERR) {
 			goto err_out;
 		}
@@ -273,28 +275,28 @@ PANCSTATUS pancake_reassembly_test(PANCHANDLE handle)
 		fragmented_packet[2][3] = i;
 
 		/* Check middle packet reassembly */
-		ret = pancake_reassemble(dev, &buf, &addr, &addr, fragmented_packet[1], 102);
+		ret = pancake_reassemble(dev, &buf, &addr, &addr, fragmented_packet[1], 101);
 		if (ret != PANCSTATUS_NOTREADY) {
 			goto err_out;
 		}
 
 		/* Check last packet reassembly */
-		ret = pancake_reassemble(dev, &buf, &addr, &addr, fragmented_packet[2], 51);
+		ret = pancake_reassemble(dev, &buf, &addr, &addr, fragmented_packet[2], 53);
 		if (ret != PANCSTATUS_OK) {
 			goto err_out;
 		}
 
 		/* Check data */
 		ret = PANCSTATUS_ERR;
-		res = memcmp(buf->data, &fragmented_packet[0][5], 97);
+		res = memcmp(buf->data, &fragmented_packet[0][5], 96);
 		if (res != 0) {
 			goto err_out;
 		}
-		res = memcmp(buf->data + 97, &fragmented_packet[1][5], 97);
+		res = memcmp(buf->data + 96, &fragmented_packet[1][5], 96);
 		if (res != 0) {
 			goto err_out;
 		}
-		res = memcmp(buf->data + 2*97, &fragmented_packet[2][5], 46);
+		res = memcmp(buf->data + 2*96, &fragmented_packet[2][5], 48);
 		if (res != 0) {
 			goto err_out;
 		}

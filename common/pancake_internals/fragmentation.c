@@ -25,8 +25,12 @@ PANCSTATUS populate_fragmentation_header(struct pancake_frag_hdr *frag_hdr, uint
 	}
 	frag_hdr->tag = htons(datagram_tag);
 
+	if (offset % 8) {
+		pancake_printf("Warning, not 8 byte aligned!\n");
+	}
+
 	/* Offset */
-	frag_hdr->offset = offset;
+	frag_hdr->offset = offset/8;
 
 	return PANCSTATUS_OK;
 }
@@ -50,7 +54,6 @@ PANCSTATUS pancake_send_fragmented(struct pancake_main_dev *dev, uint8_t *raw_da
 {
 	PANCSTATUS ret;
 	struct pancake_frag_hdr *frag_hdr;
-	uint16_t packet_size = aMaxPHYPacketSize - aMaxFrameOverhead;
 	uint16_t frame_overhead;
 	uint16_t dgram_hdr_len;
 	uint16_t dgram_len;
@@ -62,7 +65,8 @@ PANCSTATUS pancake_send_fragmented(struct pancake_main_dev *dev, uint8_t *raw_da
 	frame_overhead = calculate_frame_overhead(dev, comp_hdr);
 	dgram_len = comp_hdr->size + payload_len;
 	dgram_hdr_len = frame_overhead + frag_hdr_len - comp_hdr->size - 1;
-	space_available = packet_size - dgram_hdr_len;
+	space_available = aMaxPHYPacketSize - aMaxFrameOverhead - dgram_hdr_len;
+	space_available -= space_available % 8;
 	payload_len += comp_hdr->size;
 
 	/* Define the location of the fragmentation header */
@@ -91,7 +95,7 @@ PANCSTATUS pancake_send_fragmented(struct pancake_main_dev *dev, uint8_t *raw_da
 		payload_len -= space_available;
 
 		/* Time to pay a little visit to the transmission fairy */
-		ret = dev->cfg->write_func(dev->dev_data, NULL, raw_data, packet_size);
+		ret = dev->cfg->write_func(dev->dev_data, NULL, raw_data, dgram_hdr_len + space_available);
 		if (ret != PANCSTATUS_OK) {
 			goto err_out;
 		}
@@ -105,7 +109,7 @@ PANCSTATUS pancake_send_fragmented(struct pancake_main_dev *dev, uint8_t *raw_da
 	memcpy((void*)(raw_data + dgram_hdr_len), (void*)(payload + (offset - comp_hdr->size)), payload_len);
 
 	/* Time to pay a little visit to the transmission fairy */
-	ret = dev->cfg->write_func(dev->dev_data, NULL, raw_data, frag_hdr_len + payload_len);
+	ret = dev->cfg->write_func(dev->dev_data, NULL, raw_data, dgram_hdr_len + payload_len);
 	if (ret != PANCSTATUS_OK) {
 		goto err_out;
 	}

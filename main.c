@@ -76,25 +76,22 @@ void my_test_function()
 
 int main(int argc, char **argv)
 {
-	char ipstr[INET6_ADDRSTRLEN];
 	PANCSTATUS ret;
 
-	if (argc > 1) {
-		strcpy(ipstr, (char *) argv[1]);
-		printf("Will connect to :\t%s\n",ipstr);
-	} else {
-		strcpy(ipstr, "::");
-	}
-
-	ret = pancake_init(&my_pancake_handle, &my_linux_options, &linux_cfg, ipstr, my_read_callback);
+	ret = pancake_init(&my_pancake_handle, &my_linux_options, &linux_cfg, stdout, my_read_callback);
 	if (ret != PANCSTATUS_OK) {
 		printf("main.c: pancake failed to initialize!\n");
 		return EXIT_FAILURE;
 	}
 
-	if (argc > 1) {
-		my_test_function();
+#if 1
+	my_test_function();
+#else
+	ret = pancake_reassembly_test(my_pancake_handle);
+	if (ret != PANCSTATUS_OK) {
+		printf("main.c: reassembly test failed\n");
 	}
+#endif
 
 	pancake_destroy(my_pancake_handle);
 

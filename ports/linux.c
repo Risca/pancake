@@ -99,6 +99,7 @@ pthread_t my_thread;
 
 static void linux_read_thread(void *dev_data)
 {
+#if 0
 	uint8_t i, timeout = 1;
 	uint8_t data[127*3];
 	uint16_t length = 1 + 40 + 2;
@@ -142,6 +143,7 @@ static void linux_read_thread(void *dev_data)
 		/* What to do, what to do? */
 	}
 #endif
+#endif // Whole function
 }
 
 static PANCSTATUS linux_init_func(void *dev_data)
@@ -166,11 +168,11 @@ static PANCSTATUS linux_write_func(void *dev_data, struct pancake_ieee_addr *des
 
 static PANCSTATUS linux_destroy_func(void *dev_data)
 {
-    #ifdef _WIN32
-    WaitForSingleObject(win_thread, INFINITE);
-	#else // Linux
+#ifdef _WIN32
+	WaitForSingleObject(win_thread, INFINITE);
+#else // Linux
 	pthread_join(my_thread, NULL);
-	#endif
+#endif
 
 	return PANCSTATUS_OK;
 }
