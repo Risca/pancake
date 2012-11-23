@@ -203,9 +203,14 @@ void pancake_print_raw_bits(FILE *out, uint8_t *bytes, size_t length)
 void populate_dummy_ipv6_header(struct ip6_hdr *hdr, uint16_t payload_length)
 {
 	/* Loopback (::1/128) */
-	struct in6_addr addr = {
+	uint8_t identifier[2] = {0, 1};
+	struct in6_addr addr;
+	/*
+	 = {
 			0xfe, 0x80, 0, 0, 0, 0, 0, 0,
-			0, 0, 0, 0xff, 0xfe, 0, 0, 1};
+			0, 0, 0, 0xff, 0xfe, 0, 0, 1}*/
+			
+	pancake_get_in6_address(LINK_LOCAL_PREFIX, &identifier, 16, &addr);
 
 	// Version + Traffic Control [ECN(2) + DSCP(6)] + Flow id 26
 	hdr->ip6_flow	=	htonl((6 << 28) | (0x1 << 26) | (26 << 0));

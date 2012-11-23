@@ -39,6 +39,9 @@ struct pancake_options_cfg {
 	enum pancake_security security;
 };
 
+// Link local prefix
+static const uint8_t LINK_LOCAL_PREFIX[] = {0xfe, 0x80, 0, 0, 0, 0, 0, 0}; // 64 bits
+
 typedef void (*read_callback_func)(struct ip6_hdr *hdr, uint8_t *payload, uint16_t payload_length);
 
 PANCSTATUS pancake_init(PANCHANDLE *handle, struct pancake_options_cfg *options_cfg, struct pancake_port_cfg *port_cfg, void *dev_data, read_callback_func read_callback);
@@ -65,4 +68,7 @@ struct pancake_compressed_ip6_hdr {
 PANCSTATUS pancake_compress_header(struct ip6_hdr *hdr, struct pancake_compressed_ip6_hdr *compressed_hdr);
 PANCSTATUS pancake_decompress_header(struct pancake_compressed_ip6_hdr *compressed_hdr, struct ip6_hdr *hdr, uint16_t payload_length);
 PANCSTATUS pancake_diff_header(struct ip6_hdr *origin_hdr, struct ip6_hdr *decompressed_hdr);
+
+/* Adress autoconfiguration */
+PANCSTATUS pancake_get_in6_address(uint8_t *address_prefix, uint8_t *interface_identifier, uint8_t identifier_length, struct in6_addr *address);
 #endif

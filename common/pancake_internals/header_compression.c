@@ -9,8 +9,6 @@
     #include <pthread.h>
 #endif
 
-static const uint8_t LINK_LOCAL_PREFIX[] = {0xfe, 0x80, 0, 0, 0, 0, 0, 0}; // 64 bits
-
 /**
  * Compress ipv6 address
  * @returns length of inline data in bytes
