@@ -200,7 +200,13 @@ PANCSTATUS pancake_send(PANCHANDLE handle, struct ip6_hdr *hdr, uint8_t *payload
 		compressed_ip6_hdr.size = 40;
 		break;
 	case PANC_COMPRESSION_HCIP:
-		pancake_compress_header(hdr, &compressed_ip6_hdr);
+		ret = pancake_compress_header(hdr, &compressed_ip6_hdr);
+		
+		if(ret == PANCSTATUS_ERR) {
+			printf("%s", "There is an error in pancake_compress_header");
+			goto err_out;
+		}
+		
 		// TODO; Add dispatch value
 		break;
 	default:

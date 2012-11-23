@@ -35,13 +35,13 @@ static WORD colors[] = {
 	FOREGROUND_RED | FOREGROUND_INTENSITY,                    /* Red */
 	FOREGROUND_GREEN | FOREGROUND_INTENSITY,                  /* Green */
 	FOREGROUND_RED | FOREGROUND_GREEN | FOREGROUND_INTENSITY, /* Yellow */
-	FOREGROUND_BLUE | FOREGROUND_INTENSITY                    /* Blue */
+	FOREGROUND_BLUE | FOREGROUND_INTENSITY,                   /* Blue */
 	FOREGROUND_BLUE | FOREGROUND_RED | FOREGROUND_GREEN,      /* White */
 };
 
 void color_output(HANDLE hConsole, int COLOR) 
 {
-	SetConsoleTextAttribute(hConsole, COLOR);
+	SetConsoleTextAttribute(hConsole, colors[COLOR]);
 }
 
 #define FOREGROUND_CYAN FOREGROUND_BLUE | FOREGROUND_GREEN | FOREGROUND_INTENSITY
@@ -203,9 +203,9 @@ void pancake_print_raw_bits(FILE *out, uint8_t *bytes, size_t length)
 void populate_dummy_ipv6_header(struct ip6_hdr *hdr, uint16_t payload_length)
 {
 	/* Loopback (::1/128) */
-	struct in6_addr addr = {{{
+	struct in6_addr addr = {
 			0xfe, 0x80, 0, 0, 0, 0, 0, 0,
-			0, 0, 0, 0xff, 0xfe, 0, 0, 1}}};
+			0, 0, 0, 0xff, 0xfe, 0, 0, 1};
 
 	// Version + Traffic Control [ECN(2) + DSCP(6)] + Flow id 26
 	hdr->ip6_flow	=	htonl((6 << 28) | (0x1 << 26) | (26 << 0));
