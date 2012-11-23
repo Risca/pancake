@@ -109,7 +109,7 @@ PANCSTATUS pancake_send_fragmented(struct pancake_main_dev *dev, uint8_t *raw_da
 
 #if PANC_DEMO_TWO != 0
 		/* Print packet */
-		pancake_pretty_print(dev->dev_data, raw_data, packet_size, color_positions, 3);
+		pancake_pretty_print(dev->dev_data, raw_data, dgram_hdr_len + space_available, color_positions, 3);
 		if (offset == 0) {
 			color_positions[1].position = color_positions[0].position;
 		}
@@ -135,7 +135,7 @@ PANCSTATUS pancake_send_fragmented(struct pancake_main_dev *dev, uint8_t *raw_da
 
 #if PANC_DEMO_TWO != 0
 	/* Print packet */
-	pancake_pretty_print(dev->dev_data, raw_data, packet_size, color_positions, 3);
+	pancake_pretty_print(dev->dev_data, raw_data, dgram_hdr_len + payload_len, color_positions, 3);
 #endif
 
 	/* Time to pay a little visit to the transmission fairy */

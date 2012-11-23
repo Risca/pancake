@@ -206,8 +206,7 @@ PANCSTATUS pancake_send(PANCHANDLE handle, struct ip6_hdr *hdr, uint8_t *payload
 			printf("%s", "There is an error in pancake_compress_header");
 			goto err_out;
 		}
-		
-		// TODO; Add dispatch value
+		compressed_ip6_hdr.dispatch_value = DISPATCH_IPHC;
 		break;
 	default:
 		/* Not supported... yet */

@@ -15,7 +15,7 @@
 
 extern struct pancake_port_cfg linux_cfg;
 struct pancake_options_cfg my_linux_options = {
-	.compression = PANC_COMPRESSION_HCIP,
+	.compression = PANC_COMPRESSION_NONE,
 	.security = PANC_SECURITY_NONE,
 };
 PANCHANDLE my_pancake_handle;
@@ -59,11 +59,11 @@ void my_test_function()
 	}
 
 	fprintf(stdout, "Sending BIG packet:\n");
-	for (i = 0; i < 200; i++) {
+	for (i = 0; i < 200-20; i++) {
 		payload[i] = i;
 	}
-	populate_dummy_ipv6_header(hdr, 200);
-	payload_length = 200;
+	populate_dummy_ipv6_header(hdr, 200-20);
+	payload_length = 200-20;
 	SLEEP(timeout);
 	ret = pancake_send(my_pancake_handle, hdr, payload, payload_length);
 	if (ret != PANCSTATUS_OK) {
