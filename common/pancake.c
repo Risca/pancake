@@ -202,7 +202,7 @@ PANCSTATUS pancake_send(PANCHANDLE handle, struct ip6_hdr *hdr, uint8_t *payload
 	case PANC_COMPRESSION_HCIP:
 		ret = pancake_compress_header(hdr, &compressed_ip6_hdr);
 		
-		if(ret == PANCSTATUS_ERR) {
+		if(ret != PANCSTATUS_OK) {
 			printf("%s", "There is an error in pancake_compress_header");
 			goto err_out;
 		}
