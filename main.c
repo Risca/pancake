@@ -8,12 +8,13 @@
 
 extern struct pancake_port_cfg linux_cfg;
 struct pancake_options_cfg my_linux_options = {
+
 	.compression = PANC_COMPRESSION_NONE,
 	.security = PANC_SECURITY_NONE,
 };
 PANCHANDLE my_pancake_handle;
 
-void my_read_callback(struct ip6_hdr *hdr, uint8_t *payload, uint16_t size)
+static void my_read_callback(struct ip6_hdr *hdr, uint8_t *payload, uint16_t size)
 {
 	if (hdr == NULL) {
 		printf("main.c: Got message: %s\n", payload);
@@ -77,17 +78,19 @@ void my_test_function()
 int main(int argc, char **argv)
 {
 	PANCSTATUS ret;
-
-	ret = pancake_init(&my_pancake_handle, &my_linux_options, &linux_cfg, stdout, my_read_callback);
+#if 0
+	ret = pancake_init(&my_pancake_handle, &my_options, &linux_cfg, NULL, my_read_callback);
 	if (ret != PANCSTATUS_OK) {
 		printf("main.c: pancake failed to initialize!\n");
 		return EXIT_FAILURE;
 	}
 
+
 #if 1
 	my_test_function();
 #else
 	ret = pancake_reassembly_test(my_pancake_handle);
+
 	if (ret != PANCSTATUS_OK) {
 		printf("main.c: reassembly test failed\n");
 	}

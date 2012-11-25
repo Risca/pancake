@@ -2,7 +2,9 @@
 #define _NETINET_IN_H	1
 
 #include <inttypes.h>
-#include <sys/socket.h>
+#ifdef __linux__
+	#include <sys/socket.h>
+#endif
 
 /* rfc3493 */
 #define INET_ADDRSTRLEN    16
@@ -16,15 +18,17 @@ struct in6_addr {
 /* Type to represent a port.  */
 typedef uint16_t in_port_t;
 
-/* Structure describing an Internet socket address.  */
-struct sockaddr_in6 {
-    uint8_t         sin6_len;       /* length of this struct */
-    sa_family_t     sin6_family;    /* AF_INET6 */
-    in_port_t       sin6_port;      /* transport layer port # */
-    uint32_t        sin6_flowinfo;  /* IPv6 flow information */
-    struct in6_addr sin6_addr;      /* IPv6 address */
-    uint32_t        sin6_scope_id;  /* set of interfaces for a scope */
-};
+#ifdef __linux__
+	/* Structure describing an Internet socket address.  */
+	struct sockaddr_in6 {
+		uint8_t         sin6_len;       /* length of this struct */
+		sa_family_t     sin6_family;    /* AF_INET6 */
+		in_port_t       sin6_port;      /* transport layer port # */
+		uint32_t        sin6_flowinfo;  /* IPv6 flow information */
+		struct in6_addr sin6_addr;      /* IPv6 address */
+		uint32_t        sin6_scope_id;  /* set of interfaces for a scope */
+	};
+#endif
 
 typedef uint32_t in_addr_t;
 

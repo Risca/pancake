@@ -5,7 +5,8 @@
 #ifdef _WIN32
     #include <windows.h>
     #include <memory.h>
-#else
+#endif
+#ifdef __linux__
     #include <pthread.h>
 #endif
 

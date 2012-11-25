@@ -14,7 +14,7 @@ VPATH		:=	$(COMMONDIR) $(PORTSDIR)
 # Add some sources
 SOURCES		:=	$(COMMONDIR)/pancake.c
 SOURCES		+=	$(COMMONDIR)/in6_addr.c
-SOURCES		+=	$(PORTSDIR)/$(TARGET).c
+SOURCES		+=	$(PORTSDIR)/$(TARGET)/port.c
 SOURCES		+=	$(TOPDIR)/main.c
 
 # Define include files

@@ -1,5 +1,5 @@
 #include <in6_addr.h>
-#include <netinet/in.h>
+#include <in.h>
 #include <stdio.h>
 
 /**

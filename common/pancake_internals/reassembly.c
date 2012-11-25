@@ -2,7 +2,9 @@
 extern void pancake_print_raw_bits(FILE *out, uint8_t *bytes, size_t length);
 static uint8_t fragmented_packet[3][102];
 
-void populate_fragmented_packets()
+static void populate_fragmented_packets(void);
+
+static void populate_fragmented_packets(void)
 {
 	uint8_t i;
 	uint8_t payload = 0;

@@ -2,9 +2,11 @@
  * Packet fragmentation
  */
 
+static PANCSTATUS populate_fragmentation_header(struct pancake_frag_hdr *frag_hdr, uint16_t dgram_len, uint16_t offset);
+
 static uint16_t datagram_tag = 0;
 
-PANCSTATUS populate_fragmentation_header(struct pancake_frag_hdr *frag_hdr, uint16_t dgram_len, uint16_t offset)
+static PANCSTATUS populate_fragmentation_header(struct pancake_frag_hdr *frag_hdr, uint16_t dgram_len, uint16_t offset)
 {
 	/* Clear header */
 	memset((void *)frag_hdr, 0, 5);
@@ -50,7 +52,7 @@ PANCSTATUS populate_fragmentation_header(struct pancake_frag_hdr *frag_hdr, uint
  * | Header overhead | F Typ | F Hdr (+offset)  | ...yload           |
  * +-----------------+-------+------------------+--------------------+
  */ 
-PANCSTATUS pancake_send_fragmented(struct pancake_main_dev *dev, uint8_t *raw_data, struct pancake_compressed_ip6_hdr *comp_hdr, uint8_t *payload, uint16_t payload_len)
+static PANCSTATUS pancake_send_fragmented(struct pancake_main_dev *dev, uint8_t *raw_data, struct pancake_compressed_ip6_hdr *comp_hdr, uint8_t *payload, uint16_t payload_len)
 {
 	PANCSTATUS ret;
 	struct pancake_frag_hdr *frag_hdr;

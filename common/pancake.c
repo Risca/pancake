@@ -1,3 +1,5 @@
+
+//_____ I N C L U D E S________________________________________________________
 #include <pancake.h>
 #include <stddef.h>
 #include <string.h>
@@ -15,6 +17,9 @@
     #include <winsock.h>
 #endif
 
+
+
+//_____ D E F I N I T I O N S _________________________________________________
 /* Updated to reflect RFC6282 */
 #define DISPATCH_NALP        0x00
 #define DISPATCH_ESC         0x40
@@ -27,23 +32,43 @@
 #define DISPATCH_FRAGN       0xE0
 
 /* None, 32 bit, 64 bit, 128 bit */
-uint16_t security_overhead[] = 
+const uint16_t security_overhead[] = 
 	{0, 9, 13, 21};
+
+struct pancake_frag_hdr {
+	uint16_t size;
+	uint16_t tag;
+	uint8_t offset;
+};
 
 struct pancake_main_dev {
 	struct pancake_port_cfg		*cfg;
 	struct pancake_options_cfg	*options;
-	void				*dev_data;
-	read_callback_func		read_callback;
+	void						*dev_data;
+	event_callback_func			event_callback;
 };
 static struct pancake_main_dev devs[PANC_MAX_DEVICES];
 
+static struct pancake_event_data_received data_received;
+static pancake_event event;
+
 #if PANC_HAVE_PRINTF != 0
-#define pancake_printf(...) printf(__VA_ARGS__)
+	#define pancake_printf(...) printf(__VA_ARGS__)
 #else
-#define pancake_printf(...) {}
+	#define pancake_printf(...) {}
 #endif
 
+#if PANC_USE_HELPERS != 0
+	#define pancake_print_raw_bits(...) pancake_print_raw_bits(__VA_ARGS__)
+#else
+	#define pancake_print_raw_bits(...) {}
+#endif
+
+
+static PANCSTATUS pancake_send_fragmented(struct pancake_main_dev *dev, uint8_t *raw_data, struct pancake_compressed_ip6_hdr *comp_hdr, uint8_t *payload, uint16_t payload_len);
+
+
+//_____ F U N C T I O N   D E F I N I T I O N S________________________________
 static void print_pancake_error(char *source, PANCSTATUS ret)
 {
 	switch (ret) {
@@ -75,23 +100,19 @@ static uint16_t calculate_frame_overhead(struct pancake_main_dev *dev, struct pa
 	return overhead;
 }
 
-struct pancake_frag_hdr {
-	uint16_t size;
-	uint16_t tag;
-	uint8_t offset;
-};
 
 #include "pancake_internals/fragmentation.c"
 #include "pancake_internals/reassembly.c"
 #include "pancake_internals/header_compression.c"
 
-PANCSTATUS pancake_init(PANCHANDLE *handle, struct pancake_options_cfg *options_cfg, struct pancake_port_cfg *port_cfg, void *dev_data, read_callback_func read_callback)
+
+PANCSTATUS pancake_init(PANCHANDLE *handle, struct pancake_options_cfg *options_cfg, struct pancake_port_cfg *port_cfg, void *dev_data, event_callback_func event_callback)
 {
 	int8_t ret;
 	uint8_t i;
 	static uint8_t handle_count = 0;
 	struct pancake_main_dev *dev = &devs[handle_count];
-
+	
 	/* Sanity check */
 	if (handle == NULL || options_cfg == NULL || port_cfg == NULL || handle_count+1 > PANC_MAX_DEVICES) {
 		goto err_out;
@@ -117,7 +138,7 @@ PANCSTATUS pancake_init(PANCHANDLE *handle, struct pancake_options_cfg *options_
 	dev->cfg = port_cfg;
 	dev->options = options_cfg;
 	dev->dev_data = dev_data;
-	dev->read_callback = read_callback;
+	dev->event_callback = event_callback;
 	*handle = handle_count;
 	handle_count++;
 
@@ -127,6 +148,7 @@ err_out:
 }
 
 #if PANC_TESTS_ENABLED != 0
+
 PANCSTATUS pancake_write_test(PANCHANDLE handle)
 {
 	uint8_t ret;
@@ -154,7 +176,7 @@ PANCSTATUS pancake_write_test(PANCHANDLE handle)
 		goto err_out;
 	}
 
-	dev->read_callback(NULL, (uint8_t *)"Write test successful!", 0);
+	//dev->event_callback(NULL, "Write test successful!", 0);
 
 	return PANCSTATUS_OK;
 err_out:
@@ -241,7 +263,7 @@ PANCSTATUS pancake_send_packet(PANCHANDLE handle, uint8_t *ip6_packet, uint16_t 
 	return pancake_send(handle, (struct ip6_hdr *)ip6_packet, ip6_packet+40, packet_length-40);
 }
 
-static PANCHANDLE pancake_handle_from_dev_data(void *dev_data)
+PANCHANDLE pancake_handle_from_dev_data(void *dev_data)
 {
 	int i;
 	struct pancake_main_dev *dev;
@@ -305,12 +327,37 @@ PANCSTATUS pancake_process_data(void *dev_data, struct pancake_ieee_addr *src, s
 		}
 	};
 
+	event.type = PANC_EVENT_DATA_RECEIVED;
+	event.data_received.hdr = NULL;
+    event.data_received.payload = payload;
+    event.data_received.payload_length = payload_length;
+	
 	/* Relay data to upper levels */
-	dev->read_callback((struct ip6_hdr *)1, payload, payload_length);
 	ret = PANCSTATUS_OK;
+	dev->event_callback(&event);
 
 out:
 	print_pancake_error("pancake_process_data()", ret);
 	return ret;
 }
 
+PANCSTATUS pancake_connection_update(void *dev_data, struct pancake_event_con_update *connection_update )
+{
+  	/* Try to get handle */
+  	struct pancake_main_dev *dev;
+	PANCHANDLE handle;
+	handle = pancake_handle_from_dev_data(dev_data);
+	if (handle < 0) {
+		goto err_out;
+	}
+	dev = &devs[handle];
+  
+  	event.type = PANC_EVENT_CONNECTION_UPDATE;
+	event.connection_update = *connection_update;
+	
+	dev->event_callback(&event);
+	
+	return PANCSTATUS_OK;
+err_out:
+	return PANCSTATUS_ERR;
+}
