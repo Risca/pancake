@@ -70,5 +70,5 @@ PANCSTATUS pancake_decompress_header(struct pancake_compressed_ip6_hdr *compress
 PANCSTATUS pancake_diff_header(struct ip6_hdr *origin_hdr, struct ip6_hdr *decompressed_hdr);
 
 /* Adress autoconfiguration */
-PANCSTATUS pancake_get_in6_address(uint8_t *address_prefix, uint8_t *interface_identifier, uint8_t identifier_length, struct in6_addr *address);
+PANCSTATUS pancake_get_in6_address(const uint8_t *address_prefix, const uint8_t *interface_identifier, const uint8_t identifier_length, struct in6_addr *address);
 #endif

@@ -84,6 +84,7 @@ struct pancake_frag_hdr {
 #include "pancake_internals/fragmentation.c"
 #include "pancake_internals/reassembly.c"
 #include "pancake_internals/header_compression.c"
+#include "pancake_internals/address_autoconfiguration.c"
 
 PANCSTATUS pancake_init(PANCHANDLE *handle, struct pancake_options_cfg *options_cfg, struct pancake_port_cfg *port_cfg, void *dev_data, read_callback_func read_callback)
 {
@@ -206,8 +207,7 @@ PANCSTATUS pancake_send(PANCHANDLE handle, struct ip6_hdr *hdr, uint8_t *payload
 			printf("%s", "There is an error in pancake_compress_header");
 			goto err_out;
 		}
-		
-		// TODO; Add dispatch value
+		compressed_ip6_hdr.dispatch_value = DISPATCH_IPHC;
 		break;
 	default:
 		/* Not supported... yet */
