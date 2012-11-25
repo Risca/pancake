@@ -1,4 +1,5 @@
 
+//_____ I N C L U D E S________________________________________________________
 /* Pancake */
 #include <pancake.h>
 #include <netinet/ip6.h>
@@ -23,30 +24,7 @@
 
 
 
-/* This function invokes osal_start_system */
-void msaOSTask(void *task_parameter);
-
-#ifdef IAR_ARMCM3_LM
-#include "osal_task.h"
-#define OSAL_START_SYSTEM() st(                                         \
-  static uint8 param_to_pass;                                           \
-  void * task_handle;                                                   \
-  uint32 osal_task_priority;                                            \
-                                                                        \
-  /* create OSAL task */                                                \
-  osal_task_priority = OSAL_TASK_PRIORITY_ONE;                          \
-  osal_task_create(msaOSTask, "osal_task", OSAL_MIN_STACK_SIZE,         \
-                   &param_to_pass, osal_task_priority, &task_handle);   \
-  osal_task_start_scheduler();                                          \
-)
-#else
-#define OSAL_START_SYSTEM() st(                                         \
-  osal_start_system();                                                  \
-)
-#endif /* IAR_ARMCM3_LM */
-
-
-
+//_____ V A R I A B L E   D E C L A R A T I O N S______________________________
 extern struct pancake_port_cfg cc2530_cfg;
 struct pancake_options_cfg my_options = {
 	.compression = PANC_COMPRESSION_NONE,
@@ -54,19 +32,44 @@ struct pancake_options_cfg my_options = {
 };
 PANCHANDLE my_pancake_handle;
 
+// Application specific variables
+static uint8_t bogus_packet[64];
+static uint8_t is_coordinator = FALSE;
+static uint8_t is_device = FALSE;
 
 
-static void my_read_callback(struct ip6_hdr *hdr, uint8_t *payload, uint16_t size)
+//_____ F U N C T I O N   D E F I N I T I O N S________________________________
+static void my_event_callback(pancake_event *event)
 {
-  /*
-	if (hdr == NULL) {
-		printf("main.c: Got message: %s\n", payload);
-		return;
+	switch( event->type ) {
+		case PANC_EVENT_CONNECTION_UPDATE: {
+			is_coordinator = event->connection_update.is_coordinator;  
+			is_device = event->connection_update.is_device;
+		  
+		  	// When connected as device, send hello world
+			if( PANC_CONNECTED == event->connection_update.status && 
+			    is_device ) {
+				  
+				uint8_t hello_world[] = "Hello, World!";
+				memcpy(bogus_packet+40, hello_world, sizeof(hello_world));
+				PANCSTATUS ret = pancake_send_packet(my_pancake_handle, bogus_packet, sizeof(bogus_packet));
+			}
+			break;
+		}
+		case PANC_EVENT_DATA_RECEIVED: {
+			if( is_coordinator ) {
+		  		// When we get a message, send response
+				uint8_t hello_world_response[] = "Well hello there!";
+				memcpy(bogus_packet+40, hello_world_response, sizeof(hello_world_response));
+		  
+				PANCSTATUS ret = pancake_send_packet(my_pancake_handle, bogus_packet, sizeof(bogus_packet));
+			}
+			break;
+		}
 	}
-	printf("main.c: Looping incoming packet to output again\n");
-
-	pancake_send(my_pancake_handle, hdr, payload, size);
-*/
+	
+  
+  	
 }
 
 
@@ -75,21 +78,16 @@ int main(int argc, int **argv)
 	/* Initialize hardware */
 	HAL_BOARD_INIT();
 	
-	PANCSTATUS ret = pancake_init(&my_pancake_handle, &my_options, &cc2530_cfg, NULL, my_read_callback);
-	if (ret != PANCSTATUS_OK) {
+	PANCSTATUS ret = pancake_init(&my_pancake_handle, &my_options, &cc2530_cfg, NULL, my_event_callback);
+	if (PANCSTATUS_OK != ret) {
 		goto err_out;
 	}
 	
-	// Create the hello world package
-	uint8_t hello_world[] = "Hello, world!";
-	uint8_t bogus_packet[64];
-	memcpy(bogus_packet+40, hello_world, sizeof(hello_world));
-	
-	ret = pancake_send_packet(my_pancake_handle, bogus_packet, sizeof(bogus_packet));
+	for(;;);
 	
 #if 0
 	ret = pancake_write_test(my_pancake_handle);
-	if (ret != PANCSTATUS_OK) {
+	if (PANCSTATUS_OK != ret) {
 		printf("pancake_write_test failed!\n");
 	}
 
@@ -101,9 +99,4 @@ int main(int argc, int **argv)
 	return 0;
 err_out:
   	return -1;
-}
-
-void msaOSTask(void *task_parameter)
-{
-  osal_start_system();
 }

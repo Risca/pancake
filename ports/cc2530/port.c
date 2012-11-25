@@ -46,7 +46,9 @@ uint32_t timer_counter = 0;
 uint8_t active_event_call = FALSE;
 
 //##### Globals #####
-uint8_t online = FALSE;
+uint8_t is_online = FALSE;
+uint8_t is_device = FALSE;
+uint8_t is_coordinator = FALSE;
 uint8_t port_process_mac_event_task_id;
 macPanDesc_t scan_pan_results[PORT_MAC_MAX_RESULTS];
 
@@ -74,11 +76,6 @@ static PANCSTATUS cc2530_init_func(void *dev_data)
 	
 	update_timer_init();
 	
-	/* Wait until online.
-	   - Either by becoming the coordinator and one device has connected.
-	   - or by becoming a device and connects to a coordinator. */
-	while( !online );
-	
 	return PANCSTATUS_OK;
 err_out:
 	return PANCSTATUS_ERR;
@@ -87,8 +84,11 @@ err_out:
 static PANCSTATUS cc2530_write_func(void *dev_data, uint8_t *data, uint16_t length) 
 {
   	// Send to hard-coded address
-    port_send_data_request(data, length, TRUE, PORT_COORD_SHORT_ADDR);
-  
+  	if( is_device )
+	    port_send_data_request(data, length, TRUE, PORT_COORD_SHORT_ADDR);
+	if( is_coordinator )
+  		port_send_data_request(data, length, TRUE, 0x0001);
+	
 	return PANCSTATUS_OK;
 err_out:
 	return PANCSTATUS_ERR;

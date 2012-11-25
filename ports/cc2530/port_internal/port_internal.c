@@ -83,7 +83,8 @@ macMlmeAssociateReq_t AssociateReq;
 /* Structure that used for association response */
 macMlmeAssociateRsp_t AssociateRsp;
 
-
+// Passed to the application
+struct pancake_event_con_update connection_update;
 
 //_____ F U N C T I O N   D E F I N I T I O N S________________________________
 //##### MAC init functions ####################################################
@@ -124,6 +125,8 @@ void port_init_coordinator(void)
 	
 	/* Call start request to start the device as a coordinator */
 	MAC_MlmeStartReq(&startReq);
+	
+	is_coordinator = TRUE;
 }
 
 void port_init_device(void)
@@ -152,6 +155,8 @@ void port_init_device(void)
 	
 	/* Setup Coordinator short address */
 	MAC_MlmeSetReq(MAC_COORD_SHORT_ADDRESS, &AssociateReq.coordAddress.addr.shortAddr);
+	
+	is_device = TRUE;
 }
 
 //##### MAC send/request functions ############################################
@@ -201,6 +206,13 @@ void port_send_associate_response( macCbackEvent_t* pData )
 	
 	/* Call Associate Response */
 	MAC_MlmeAssociateRsp(&AssociateRsp);
+	
+	/* Update connection status */
+	connection_update.status = PANC_CONNECTED;
+	connection_update.is_device = FALSE;
+	connection_update.is_coordinator = TRUE;
+	
+	PANCSTATUS ret = pancake_connection_update( NULL, &connection_update );
 }
 
 void port_send_data_request(uint8* data, uint8 dataLength, bool directMsg, uint16 dstShortAddr)
@@ -216,12 +228,6 @@ void port_send_data_request(uint8* data, uint8 dataLength, bool directMsg, uint1
     pData->mac.dstPanId = PanId;
     pData->mac.msduHandle = handle++;
     pData->mac.txOptions = MAC_TXOPTION_ACK;
-
-    /* MAC security parameters */
-    //osal_memcpy( pData->sec.keySource, msa_keySource, MAC_KEY_SOURCE_MAX_LEN );
-    //pData->sec.securityLevel = msa_securityLevel;
-    //pData->sec.keyIdMode = msa_keyIdMode;
-    //pData->sec.keyIndex = msa_keyIndex;
 
     /* Copy data */
     osal_memcpy (pData->msdu.p, data, dataLength);
@@ -261,5 +267,21 @@ void port_beacon_received( macCbackEvent_t* pData )
 
 void port_associate_response_received(void)
 {
-  online = TRUE;
+  	// Device now online
+	is_online = TRUE;
+	
+	connection_update.status = PANC_CONNECTED;
+	connection_update.is_device = TRUE;
+	connection_update.is_coordinator = FALSE;
+	
+	PANCSTATUS ret = pancake_connection_update( NULL, &connection_update );
+}
+
+void port_data_received( macCbackEvent_t* pData )
+{
+	HalLedBlink(HAL_LED_4, 0, 40, 1000);
+  	PANCSTATUS ret = pancake_process_data( NULL, pData->dataInd.msdu.p, pData->dataInd.msdu.len );
+	if(PANCSTATUS_OK != ret) {
+		halAssertHandler();
+	}
 }

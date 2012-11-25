@@ -9,17 +9,20 @@
 struct pancake_main_dev {
 	struct pancake_port_cfg		*cfg;
 	struct pancake_options_cfg	*options;
-	void				*dev_data;
-	read_callback_func		read_callback;
+	void						*dev_data;
+	event_callback_func			event_callback;
 };
 static struct pancake_main_dev devs[PANC_MAX_DEVICES];
 
-PANCSTATUS pancake_init(PANCHANDLE *handle, struct pancake_options_cfg *options_cfg, struct pancake_port_cfg *port_cfg, void *dev_data, read_callback_func read_callback)
+static struct pancake_event_data_received data_received;
+static pancake_event event;
+
+PANCSTATUS pancake_init(PANCHANDLE *handle, struct pancake_options_cfg *options_cfg, struct pancake_port_cfg *port_cfg, void *dev_data, event_callback_func event_callback)
 {
 	int8_t ret;
 	static uint8_t handle_count = 0;
 	struct pancake_main_dev *dev = &devs[handle_count];
-
+	
 	/* Sanity check */
 	if (handle == NULL || options_cfg == NULL || port_cfg == NULL || handle_count+1 > PANC_MAX_DEVICES) {
 		goto err_out;
@@ -40,7 +43,7 @@ PANCSTATUS pancake_init(PANCHANDLE *handle, struct pancake_options_cfg *options_
 	dev->cfg = port_cfg;
 	dev->options = options_cfg;
 	dev->dev_data = dev_data;
-	dev->read_callback = read_callback;
+	dev->event_callback = event_callback;
 	*handle = handle_count;
 	handle_count++;
 
@@ -49,15 +52,6 @@ err_out:
 	return PANCSTATUS_ERR;
 }
 
-/*
-PANCSTATUS pancake_update()
-{
-
-  	return PANCSTATUS_OK;
-err_out:
-	return PANCSTATUS_ERR;
-}
-*/
 
 PANCSTATUS pancake_write_test(PANCHANDLE handle)
 {
@@ -86,7 +80,7 @@ PANCSTATUS pancake_write_test(PANCHANDLE handle)
 		goto err_out;
 	}
 
-	dev->read_callback(NULL, "Write test successful!", 0);
+	//dev->event_callback(NULL, "Write test successful!", 0);
 
 	return PANCSTATUS_OK;
 err_out:
@@ -140,7 +134,7 @@ PANCSTATUS pancake_send_packet(PANCHANDLE handle, uint8_t *ip6_packet, uint16_t 
 	return pancake_send(handle, (struct ip6_hdr *)ip6_packet, ip6_packet+40, packet_length-40);
 }
 
-static PANCHANDLE pancake_handle_from_dev_data(void *dev_data)
+PANCHANDLE pancake_handle_from_dev_data(void *dev_data)
 {
 	int i;
 	struct pancake_main_dev *dev;
@@ -175,11 +169,36 @@ PANCSTATUS pancake_process_data(void *dev_data, uint8_t *data, uint16_t size)
 	payload = data+40;
 	payload_length = size-40;
 
+	event.type = PANC_EVENT_DATA_RECEIVED;
+	event.data_received.hdr = hdr;
+    event.data_received.payload = payload;
+    event.data_received.payload_length = payload_length;
+	
 	/* Relay data to upper levels */
-	dev->read_callback(hdr, payload, payload_length);
+	dev->event_callback(&event);
 
 	return PANCSTATUS_OK;
 err_out:
 	return PANCSTATUS_ERR;
 }
 
+PANCSTATUS pancake_connection_update(void *dev_data, struct pancake_event_con_update *connection_update )
+{
+  	/* Try to get handle */
+  	struct pancake_main_dev *dev;
+	PANCHANDLE handle;
+	handle = pancake_handle_from_dev_data(dev_data);
+	if (handle < 0) {
+		goto err_out;
+	}
+	dev = &devs[handle];
+  
+  	event.type = PANC_EVENT_CONNECTION_UPDATE;
+	event.connection_update = *connection_update;
+	
+	dev->event_callback(&event);
+	
+	return PANCSTATUS_OK;
+err_out:
+	return PANCSTATUS_ERR;
+}

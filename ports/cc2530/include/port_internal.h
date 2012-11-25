@@ -25,7 +25,9 @@
 //_____ G L O B A L S______________________________
 extern uint8_t port_process_mac_event_task_id;
 extern macPanDesc_t scan_pan_results[PORT_MAC_MAX_RESULTS];
-extern uint8_t online;
+extern uint8_t is_online;
+extern uint8_t is_device;
+extern uint8_t is_coordinator;
 
 
 
@@ -43,5 +45,6 @@ void port_send_data_request(uint8* data, uint8 dataLength, bool directMsg, uint1
 //##### MAC receive functions #################################################
 void port_beacon_received( macCbackEvent_t* pData );
 void port_associate_response_received(void);
+void port_data_received( macCbackEvent_t* pData );
 
 #endif

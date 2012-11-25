@@ -40,12 +40,12 @@ uint16 port_process_mac_event(uint8 taskId, uint16 events)
   {
     while ((pMsg = osal_msg_receive(port_process_mac_event_task_id)) != NULL)
     {
+	  pData = (macCbackEvent_t *) pMsg;
+	  
       switch ( *pMsg )
       {
 		/* Got an association request from another device. */
         case MAC_MLME_ASSOCIATE_IND:
-		  pData = (macCbackEvent_t *) pMsg;
-		  
 		  port_send_associate_response( pData );
           break;
 
@@ -60,19 +60,16 @@ uint16 port_process_mac_event(uint8 taskId, uint16 events)
 
 		/* Got a beacon frame */
         case MAC_MLME_BEACON_NOTIFY_IND:
-		  pData = (macCbackEvent_t *) pMsg;
-		  
 		  port_beacon_received( pData );
           break;
 
 		/* Completed setting up the the coordinator of a PAN */
         case MAC_MLME_START_CNF:
-		  /* Retrieve the message */
-          pData = (macCbackEvent_t *) pMsg;
           /* Set some indicator for the Coordinator */
           if (pData->startCnf.hdr.status == MAC_SUCCESS)
           {
             HalLedSet (HAL_LED_4, HAL_LED_MODE_ON);
+			is_online = TRUE;
           }
           break;
 
@@ -89,7 +86,6 @@ uint16 port_process_mac_event(uint8 taskId, uint16 events)
 		  else {
 			// Start device and try to associate
 			port_init_device();
-			
 			port_send_associate_request();
 		  }
 		
@@ -103,8 +99,7 @@ uint16 port_process_mac_event(uint8 taskId, uint16 events)
 
 		/* Data received from the MAC */
         case MAC_MCPS_DATA_IND:
-          // TO BE IMPLEMENTED
-		  HalLedBlink(HAL_LED_4, 0, 40, 1000);
+          port_data_received( pData );
           break;
       }
 
