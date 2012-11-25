@@ -281,10 +281,15 @@ void port_data_received( macCbackEvent_t* pData )
 {
 	HalLedBlink(HAL_LED_4, 0, 40, 1000);
 	struct pancake_ieee_addr dst;
-	struct 	pancake_ieee_addr src;
+	struct pancake_ieee_addr src;
+	
+	dst.ieee_short = pData->dataInd.mac.dstAddr.addr.shortAddr;
+	dst.addr_mode = PANCAKE_IEEE_ADDR_MODE_SHORT;
+	src.ieee_short = pData->dataInd.mac.srcAddr.addr.shortAddr;
+	src.addr_mode = PANCAKE_IEEE_ADDR_MODE_SHORT;
 
 	PANCSTATUS ret = pancake_process_data( NULL, &src, &dst, pData->dataInd.msdu.p, pData->dataInd.msdu.len );
-	if(PANCSTATUS_OK != ret) {
+	if(PANCSTATUS_ERR == ret) {
 		halAssertHandler();
 	}
 }

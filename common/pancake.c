@@ -280,6 +280,7 @@ PANCSTATUS pancake_process_data(void *dev_data, struct pancake_ieee_addr *src, s
 {
 	uint8_t *payload;
 	uint16_t payload_length;
+	struct ip6_hdr *hdr;
 	PANCSTATUS ret = PANCSTATUS_ERR;
 	PANCHANDLE handle;
 	struct pancake_main_dev *dev;
@@ -295,6 +296,7 @@ PANCSTATUS pancake_process_data(void *dev_data, struct pancake_ieee_addr *src, s
 	/* Read dispatch value */
 	switch (*data) {
 	case DISPATCH_IPv6:
+	  	hdr = (struct ip6_hdr *)(data + 1); // TODO: Fix decompression if necessary, see TODOs below as well.
 		payload = data + 1 + 40;
 		payload_length = size - (1 + 40);
 		break;
@@ -309,9 +311,10 @@ PANCSTATUS pancake_process_data(void *dev_data, struct pancake_ieee_addr *src, s
 			if (ret != PANCSTATUS_OK) {
 				goto out;
 			}
-
-			payload = ra_buf->data;
-			payload_length = (ra_buf->frag_hdr.size & 0x7FF);
+			
+			hdr = (struct ip6_hdr *)ra_buf->data; // TODO: Fix decompression if necessary
+			payload = ra_buf->data + 40;
+			payload_length = (ra_buf->frag_hdr.size & 0x7FF) - 40;
 			break;
 		default:
 			if ((*data & 0xC0) == DISPATCH_MESH) {
@@ -327,8 +330,10 @@ PANCSTATUS pancake_process_data(void *dev_data, struct pancake_ieee_addr *src, s
 		}
 	};
 
+	// TODO: AT THIS POINT THE IPv6 HEADER, hdr, SHOULD BE DECOMPRESSED
+	
 	event.type = PANC_EVENT_DATA_RECEIVED;
-	event.data_received.hdr = NULL;
+	event.data_received.hdr = hdr;
     event.data_received.payload = payload;
     event.data_received.payload_length = payload_length;
 	

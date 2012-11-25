@@ -132,13 +132,23 @@ static PANCSTATUS find_reassembly_buffer(struct pancake_reassembly_buffer **ra_b
 			}
 
 			/* Compare IEEE 802.15.4 source address */
-			r = memcmp(&ra_bufs[i].src, src, sizeof(struct pancake_ieee_addr));
+			if( PANCAKE_IEEE_ADDR_MODE_SHORT == src->addr_mode ) {
+				r = memcmp(&ra_bufs[i].src.ieee_short, &src->ieee_short, 2);
+			}
+			else {
+			  	r = memcmp(&ra_bufs[i].src.ieee_ext, &src->ieee_ext, 8);
+			}
 			if (r != 0) {
 				continue;
 			}
 
 			/* Compare IEEE 802.15.4 destination address */
-			r = memcmp(&ra_bufs[i].dst, dst, sizeof(struct pancake_ieee_addr));
+			if( PANCAKE_IEEE_ADDR_MODE_SHORT == dst->addr_mode ) {
+				r = memcmp(&ra_bufs[i].dst.ieee_short, &dst->ieee_short, 2);
+			}
+			else {
+			  	r = memcmp(&ra_bufs[i].dst.ieee_ext, &dst->ieee_ext, 8);
+			}
 			if (r != 0) {
 				continue;
 			}

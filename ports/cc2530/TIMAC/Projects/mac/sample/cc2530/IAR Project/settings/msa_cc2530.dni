@@ -1,5 +1,5 @@
 [DebugChecksum]
-Checksum=505793310
+Checksum=23601368
 [DisAssemblyWindow]
 NumStates=_ 1
 State 1=_ 1
@@ -30,5 +30,6 @@ Category=_ 0
 LoggingEnabled=_ 0
 LogFile=_ ""
 [Aliases]
-Count=0
+A0=_ "Z:\CDIO\code\ports\cc2530\TIMAC\Components\osal\mcu\cc2530\OSAL_Math.s51" ""
+Count=1
 SuppressDialog=0

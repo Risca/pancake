@@ -33,12 +33,35 @@ struct pancake_options_cfg my_options = {
 PANCHANDLE my_pancake_handle;
 
 // Application specific variables
-static uint8_t bogus_packet[64];
+static uint8_t bogus_packet[200];
 static uint8_t is_coordinator = FALSE;
 static uint8_t is_device = FALSE;
 
 
+static uint8_t 			data[127*3];
+static uint16_t			payload_length = 2;
+static struct ip6_hdr 	*hdr 		= (struct ip6_hdr *)(data+1);
+static uint8_t			*payload	= data + 1 + 40;
+
+
 //_____ F U N C T I O N   D E F I N I T I O N S________________________________
+static void populate_dummy_ipv6_header(struct ip6_hdr *hdr, uint16_t payload_length)
+{
+	/* Loopback (::1/128) */
+	struct in6_addr addr = {
+			0, 0, 0, 0, 0, 0, 0, 0,
+			0, 0, 0, 0, 0, 0, 0, 1};
+
+	hdr->ip6_flow	=	htonl(6 << 28);
+	hdr->ip6_plen	=	htons(payload_length);
+	hdr->ip6_nxt	=	254;
+	hdr->ip6_hops	=	2;
+
+    // Add next bytes
+	memcpy((uint8_t *)hdr + 8, &addr, 16);
+	memcpy((uint8_t *)hdr + 24, &addr, 16);
+}
+
 static void my_event_callback(pancake_event *event)
 {
 	switch( event->type ) {
@@ -49,20 +72,27 @@ static void my_event_callback(pancake_event *event)
 		  	// When connected as device, send hello world
 			if( PANC_CONNECTED == event->connection_update.status && 
 			    is_device ) {
-				  
+				    
 				uint8_t hello_world[] = "Hello, World!";
-				memcpy(bogus_packet+40, hello_world, sizeof(hello_world));
-				PANCSTATUS ret = pancake_send_packet(my_pancake_handle, bogus_packet, sizeof(bogus_packet));
+				payload_length = 130;//sizeof(hello_world);
+				
+				memcpy(payload, hello_world, sizeof(hello_world));
+				populate_dummy_ipv6_header(hdr, payload_length);
+				
+				PANCSTATUS ret = pancake_send(my_pancake_handle, hdr, payload, payload_length);
 			}
 			break;
 		}
 		case PANC_EVENT_DATA_RECEIVED: {
 			if( is_coordinator ) {
 		  		// When we get a message, send response
-				uint8_t hello_world_response[] = "Well hello there!";
-				memcpy(bogus_packet+40, hello_world_response, sizeof(hello_world_response));
+			  
+			  	hdr = event->data_received.hdr;
+				payload = event->data_received.payload;
+			  	payload_length = event->data_received.payload_length;
 		  
-				PANCSTATUS ret = pancake_send_packet(my_pancake_handle, bogus_packet, sizeof(bogus_packet));
+				PANCSTATUS ret = pancake_send(my_pancake_handle, hdr, payload, payload_length);
+			  
 			}
 			break;
 		}
@@ -78,6 +108,10 @@ int main(int argc, int **argv)
 	/* Initialize hardware */
 	HAL_BOARD_INIT();
 	
+	/* Set up variables */
+	data[0] = 0x41;
+	
+	/* Initialize the pancake framework */
 	PANCSTATUS ret = pancake_init(&my_pancake_handle, &my_options, &cc2530_cfg, NULL, my_event_callback);
 	if (PANCSTATUS_OK != ret) {
 		goto err_out;
