@@ -203,13 +203,13 @@ void pancake_print_raw_bits(FILE *out, uint8_t *bytes, size_t length)
 void populate_dummy_ipv6_header(struct ip6_hdr *hdr, uint16_t payload_length)
 {
 	struct pancake_radio_id radio_id = {
-#if 0
+#if 1
 		.pan_addr = {0xFF, 0xFF},
 		.short_addr = {0, 1},
-#if 0
-		.type = PANC_RADIO_ID_PAN_AND_SHORT_ADDR,
-#else
+#if 1
 		.type = PANC_RADIO_ID_SHORT_ADDR_ONLY,
+#else
+		.type = PANC_RADIO_ID_PAN_AND_SHORT_ADDR,
 #endif
 #else
 		.type = PANC_RADIO_ID_EUI64,
@@ -218,8 +218,8 @@ void populate_dummy_ipv6_header(struct ip6_hdr *hdr, uint16_t payload_length)
 	};
 	struct in6_addr addr;
 
+	/* Populate in6 address */
 	pancake_get_in6_address(LINK_LOCAL_PREFIX, &radio_id, &addr);
-	pancake_print_raw_bits(stdout, &addr, 16);
 
 	// Version + Traffic Control [ECN(2) + DSCP(6)] + Flow id 26
 	hdr->ip6_flow	=	htonl((6 << 28) | (0x1 << 26) | (26 << 0));
@@ -227,7 +227,7 @@ void populate_dummy_ipv6_header(struct ip6_hdr *hdr, uint16_t payload_length)
 	hdr->ip6_nxt	=	254;
 	hdr->ip6_hops	=	2;
 
-    // Add next bytes
+	// Add next bytes
 	memcpy((uint8_t *)hdr + 8, &addr, 16);
 	memcpy((uint8_t *)hdr + 24, &addr, 16);
 }

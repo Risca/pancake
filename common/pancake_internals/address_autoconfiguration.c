@@ -1,7 +1,3 @@
-#include <pancake.h>
-#include <stdio.h>
-#include <in6_addr.h>
-
 /**
  * Creates an 128 bit ipv6 address
  * @address_prefix A 64 bit address prefix, can be link_local prefix for a local address
