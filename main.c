@@ -57,7 +57,7 @@ void my_test_function()
 			/* What to do, what to do? */
 		}
 	}
-
+#if 0
 	fprintf(stdout, "Sending BIG packet:\n");
 	for (i = 0; i < 200; i++) {
 		payload[i] = i;
@@ -69,6 +69,7 @@ void my_test_function()
 	if (ret != PANCSTATUS_OK) {
 		printf("Failed to send BIG packet!\n");
 	}
+#endif
 }
 
 int main(int argc, char **argv)

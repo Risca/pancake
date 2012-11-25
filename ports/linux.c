@@ -202,11 +202,24 @@ void pancake_print_raw_bits(FILE *out, uint8_t *bytes, size_t length)
 
 void populate_dummy_ipv6_header(struct ip6_hdr *hdr, uint16_t payload_length)
 {
-	/* Loopback (::1/128) */
-	uint8_t identifier[2] = {0, 1};
+	struct pancake_radio_id radio_id = {
+#if 0
+		.pan_addr = {0xFF, 0xFF},
+		.short_addr = {0, 1},
+#if 0
+		.type = PANC_RADIO_ID_PAN_AND_SHORT_ADDR,
+#else
+		.type = PANC_RADIO_ID_SHORT_ADDR_ONLY,
+#endif
+#else
+		.type = PANC_RADIO_ID_EUI64,
+		.EUI64 = {0, 2, 4, 8, 16, 32, 64, 128},
+#endif
+	};
 	struct in6_addr addr;
-			
-	pancake_get_in6_address(LINK_LOCAL_PREFIX, identifier, 16, &addr);
+
+	pancake_get_in6_address(LINK_LOCAL_PREFIX, &radio_id, &addr);
+	pancake_print_raw_bits(stdout, &addr, 16);
 
 	// Version + Traffic Control [ECN(2) + DSCP(6)] + Flow id 26
 	hdr->ip6_flow	=	htonl((6 << 28) | (0x1 << 26) | (26 << 0));

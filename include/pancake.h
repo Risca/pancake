@@ -70,5 +70,24 @@ PANCSTATUS pancake_decompress_header(struct pancake_compressed_ip6_hdr *compress
 PANCSTATUS pancake_diff_header(struct ip6_hdr *origin_hdr, struct ip6_hdr *decompressed_hdr);
 
 /* Adress autoconfiguration */
-PANCSTATUS pancake_get_in6_address(const uint8_t *address_prefix, const uint8_t *interface_identifier, const uint8_t identifier_length, struct in6_addr *address);
+struct pancake_radio_id {
+	enum {
+		PANC_RADIO_ID_EUI64,              /* Full EUI-64 addr */
+		PANC_RADIO_ID_PAN_AND_SHORT_ADDR, /* PAN and Short addr */
+		PANC_RADIO_ID_SHORT_ADDR_ONLY,    /* Only short addr */
+	}type;
+	union {
+		uint8_t _EUI64[8];
+		struct {
+			uint8_t _short[2];
+			uint8_t _pan[2];
+		} _pan_and_short_addr;
+		uint8_t _short_only[2];
+	}_id;
+#define EUI64 _id._EUI64
+#define pan_addr _id._pan_and_short_addr._pan
+#define short_addr _id._pan_and_short_addr._short
+};
+
+PANCSTATUS pancake_get_in6_address(const uint8_t *address_prefix, const struct pancake_radio_id *r_id, struct in6_addr *address);
 #endif

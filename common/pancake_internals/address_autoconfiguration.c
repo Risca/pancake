@@ -9,7 +9,7 @@
  * @identifier_length Length of the identifier in bits, typically 48 or 16 bits
  * @address A pointer to the address that is beeing created
  */
-PANCSTATUS pancake_get_in6_address(const uint8_t *address_prefix, const uint8_t *interface_identifier, const uint8_t identifier_length, struct in6_addr *address)
+PANCSTATUS pancake_get_in6_address(const uint8_t *address_prefix, const struct pancake_radio_id *r_id, struct in6_addr *address)
 {
 	uint8_t *interface_id = address->s6_addr;
 	interface_id += 8;
@@ -18,29 +18,28 @@ PANCSTATUS pancake_get_in6_address(const uint8_t *address_prefix, const uint8_t 
 	memcpy(address, address_prefix, 8);
 
 	// Check length of identifier
-	switch(identifier_length) {
+	switch(r_id->type) {
 	// 64 bits exists, just copy over
-	case 64:
+	case PANC_RADIO_ID_EUI64:
 		// Copy all 64 bits to end of address
-		memcpy(interface_id, interface_identifier, 8);
+		memcpy(interface_id, r_id->EUI64, 8);
 		/* Complement U/L bit */
 		*interface_id ^= (1 << 1);
 		return PANCSTATUS_OK;
 
 	// 32 bits are like this [16 bit PAN-ID : 16 bit short-address]
-	case 32:
-		// Converted in this way (in order)
-		// 48 bit [PAN : PAN : 00 : 00 : SHORT : SHORT]
-		// 64 bit [PAN : PAN : 00 : FF : FE : 00 : SHORT : SHORT]
-
+	case PANC_RADIO_ID_PAN_AND_SHORT_ADDR:
 		// Pan ID
-		memcpy(interface_id, interface_identifier, 2);
-		interface_identifier += 2;
+		memcpy(interface_id, r_id->pan_addr, 2);
+		// Short addr
+		memcpy(interface_id + 6, r_id->short_addr, 2);
 		break;
 
-	// No PAN-ID exists, put 16 bit zeros instead
-	case 16:
+	case PANC_RADIO_ID_SHORT_ADDR_ONLY:
+		// No PAN-ID exists, put 16 bit zeros instead
 		memset(interface_id, 0, 2);
+		// Short addr
+		memcpy(interface_id + 6, r_id->short_addr, 2);
 		break;
 
 	default:
@@ -51,14 +50,11 @@ PANCSTATUS pancake_get_in6_address(const uint8_t *address_prefix, const uint8_t 
 	// 48 bit [PAN : PAN : 00 : 00 : SHORT : SHORT]
 	// 64 bit [PAN : PAN : 00 : FF : FE : 00 : SHORT : SHORT]
 
-	// Add zeros
+	// Add "middle" bytes
 	*(interface_id + 2) = 0x00;
 	*(interface_id + 3) = 0xff;
 	*(interface_id + 4) = 0xfe;
 	*(interface_id + 5) = 0x00;
-
-	// Add short address
-	memcpy(interface_id + 6, interface_identifier, 2);
 
 	// Set the Universal/Local" (U/L) bit to 0
 	*interface_id &= ~(1 << 1);
@@ -66,5 +62,4 @@ PANCSTATUS pancake_get_in6_address(const uint8_t *address_prefix, const uint8_t 
 	return PANCSTATUS_OK;
 err_out:
 	return PANCSTATUS_ERR;
-	
 }
