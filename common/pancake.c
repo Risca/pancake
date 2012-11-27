@@ -4,7 +4,7 @@
 #include <stddef.h>
 #include <string.h>
 
-#if PANC_USE_HELPERS != 0
+#if PANC_HELPERS_ENABLED != 0
 #include <helpers.h>
 #endif
 
@@ -49,19 +49,20 @@ struct pancake_main_dev {
 };
 static struct pancake_main_dev devs[PANC_MAX_DEVICES];
 
-static struct pancake_event_data_received data_received;
+//static struct pancake_event_data_received data_received;
 static pancake_event event;
 
-#if PANC_HAVE_PRINTF != 0
-	#define pancake_printf(...) printf(__VA_ARGS__)
-#else
+#if PANC_HAVE_PRINTF == 0
 	#define pancake_printf(...) {}
+#else
+	#define pancake_printf(...) printf(__VA_ARGS__)
 #endif
 
-#if PANC_USE_HELPERS != 0
-	#define pancake_print_raw_bits(...) pancake_print_raw_bits(__VA_ARGS__)
-#else
+#if PANC_HELPERS_ENABLED == 0
 	#define pancake_print_raw_bits(...) {}
+#else
+	#define pancake_print_raw_bits(...) pancake_print_raw_bits(__VA_ARGS__)
+	extern void pancake_print_raw_bits(FILE *out, uint8_t *bytes, size_t length);
 #endif
 
 
@@ -220,7 +221,7 @@ PANCSTATUS pancake_send(PANCHANDLE handle, struct ip6_hdr *hdr, uint8_t *payload
 		compressed_ip6_hdr.hdr_data = (uint8_t *)hdr;
 		compressed_ip6_hdr.size = 40;
 		break;
-	case PANC_COMPRESSION_HCIP:
+	case PANC_COMPRESSION_IPHC:
 		pancake_compress_header(hdr, &compressed_ip6_hdr);
 		// TODO; Add dispatch value
 		break;

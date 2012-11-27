@@ -1,8 +1,8 @@
 #ifndef PANC_H
 #define PANC_H
-#include <stdint.h>
 #include <config.h>
-#include <ip6.h>
+#include <stdint.h>
+#include <netinet/ip6.h>
 
 #define PANCAKE_MAX_HDR_SIZE 25
 #define IPv6_MTU 1280
@@ -24,7 +24,7 @@ typedef enum {
 enum pancake_header_compression {
 	PANC_COMPRESSION_NONE = 0,
 	PANC_COMPRESSION_HC1,
-	PANC_COMPRESSION_HCIP,
+	PANC_COMPRESSION_IPHC,
 };
 
 enum pancake_security {

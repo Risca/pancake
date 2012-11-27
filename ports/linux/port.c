@@ -1,5 +1,4 @@
 #include <pancake.h>
-#include <stdint.h>
 #include <stdio.h>
 #include <unistd.h>
 #include <string.h>
@@ -19,19 +18,18 @@ static PANCSTATUS linux_destroy_func(void *dev_data);
 
 struct pancake_port_cfg linux_cfg = {
 	.init_func = linux_init_func,
-    .write_func = linux_write_func,
+	.write_func = linux_write_func,
 	.destroy_func = linux_destroy_func,
 };
 
-#if PANC_HAVE_PRINTF != 0
-#define pancake_fprintf(...) fprintf(__VA_ARGS__)
+#if PANC_HAVE_PRINTF == 0
+	#define pancake_fprintf(...) {}
 #else
-#define pancake_fprintf(...) {}
+	#define pancake_fprintf(...) fprintf(__VA_ARGS__)
 #endif
 
 void pancake_print_raw_bits(FILE *out, uint8_t *bytes, size_t length)
 {
-#if PANC_HAVE_PRINTF != 0
 	uint8_t bit;
 	uint16_t i;
 	uint8_t j;
@@ -44,33 +42,32 @@ void pancake_print_raw_bits(FILE *out, uint8_t *bytes, size_t length)
 		out = stdout;
 	}
 
-	fputs("+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+\n", out);
+	pancake_fprintf(out, "+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+\n");
 	for (i=0; i < length; i++) {
-		fprintf(out, "|");
+		pancake_fprintf(out, "|");
 		for (j=0; j < 8; j++) {
 			bit = ( (*bytes) >> (7-j%8) ) & 0x01;
-			fprintf(out, "%i", bit);
+			pancake_fprintf(out, "%i", bit);
 
 			/* Place a space between every bit except last */
 			if (j != 7) {
-				fprintf(out, " ");
+				pancake_fprintf(out, " ");
 			}
 		}
 
 		if ( (i+1) % 4 == 0 ) {
-			fputs("|\n", out);
-			fputs("+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+\n", out);
+			pancake_fprintf(out, "|\n");
+			pancake_fprintf(out, "+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+\n");
 		}
 		bytes++;
 	}
 	if (length % 4 != 0) {
-		fputs("|\n+", out);
+		pancake_fprintf(out, "|\n+");
 		for (i=0; i < length % 4; i++) {
-			fputs("-+-+-+-+-+-+-+-+", out);
+			pancake_fprintf(out, "-+-+-+-+-+-+-+-+");
 		}
-		fputs("\n", out);
+		pancake_fprintf(out, "\n");
 	}
-#endif
 }
 
 void populate_dummy_ipv6_header(struct ip6_hdr *hdr, uint16_t payload_length)
@@ -148,17 +145,21 @@ static void linux_read_thread(void *dev_data)
 
 static PANCSTATUS linux_init_func(void *dev_data)
 {
-    #ifdef _WIN32
+#ifdef _WIN32
 	win_thread = CreateThread(NULL, 0, &linux_read_thread, dev_data, 0, NULL);
-	#else // Linux
+#else // Linux
 	pthread_create (&my_thread, NULL, (void *) &linux_read_thread, dev_data);
-	#endif
+#endif
 	return PANCSTATUS_OK;
 }
 
 static PANCSTATUS linux_write_func(void *dev_data, struct pancake_ieee_addr *dest, uint8_t *data, uint16_t length)
 {
 	FILE *out = (FILE*)dev_data;
+
+	if (out == NULL) {
+		out = stdout;
+	}
 
 	fputs("linux.c: Transmitting the following packet to the ether:\n", out);
 	pancake_print_raw_bits(out, data, length);
