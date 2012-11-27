@@ -10,14 +10,14 @@ enum pancake_ieee_addr_mode {
 };
 
 struct pancake_ieee_addr {
+	enum pancake_ieee_addr_mode addr_mode;
 	union {
 		uint16_t short_addr;
 		uint8_t  ext_addr[8]; /* 64 bit */
 	} addr;
-	enum pancake_ieee_addr_mode addr_mode;
-};
 #define ieee_short addr.short_addr
 #define ieee_ext addr.ext_addr
+};
 
 struct pancake_port_cfg {
 	PANCSTATUS (*init_func)(void *dev_data);

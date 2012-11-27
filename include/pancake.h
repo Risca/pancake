@@ -78,6 +78,11 @@ typedef void (*event_callback_func)(pancake_event *event);
 PANCSTATUS pancake_init(PANCHANDLE *handle, struct pancake_options_cfg *options_cfg, struct pancake_port_cfg *port_cfg, void *dev_data, event_callback_func event_callback);
 PANCSTATUS pancake_write_test(PANCHANDLE handle);
 
+#if 1
+// Link local prefix
+static const uint8_t LINK_LOCAL_PREFIX[] = {0xfe, 0x80, 0, 0, 0, 0, 0, 0}; // 64 bits
+#endif
+
 void pancake_destroy(PANCHANDLE handle);
 #if PANC_TESTS_ENABLED != 0
 PANCSTATUS pancake_write_test(PANCHANDLE handle);
@@ -104,7 +109,30 @@ PANCSTATUS pancake_compress_header(struct ip6_hdr *hdr, struct pancake_compresse
 PANCSTATUS pancake_decompress_header(struct pancake_compressed_ip6_hdr *compressed_hdr, struct ip6_hdr *hdr, uint16_t payload_length);
 PANCSTATUS pancake_diff_header(struct ip6_hdr *origin_hdr, struct ip6_hdr *decompressed_hdr);
 
+#if 1
 /* Internal */
 PANCHANDLE pancake_handle_from_dev_data(void *dev_data);
 
+/* Adress autoconfiguration */
+struct pancake_radio_id {
+	enum {
+		PANC_RADIO_ID_EUI64,              /* Full EUI-64 addr */
+		PANC_RADIO_ID_PAN_AND_SHORT_ADDR, /* PAN and Short addr */
+		PANC_RADIO_ID_SHORT_ADDR_ONLY,    /* Only short addr */
+	}type;
+	union {
+		uint8_t _EUI64[8];
+		struct {
+			uint8_t _short[2];
+			uint8_t _pan[2];
+		} _pan_and_short_addr;
+		uint8_t _short_only[2];
+	}_id;
+#define r_EUI64 _id._EUI64
+#define r_pan_addr _id._pan_and_short_addr._pan
+#define r_short_addr _id._pan_and_short_addr._short
+};
+
+PANCSTATUS pancake_get_in6_address(const uint8_t *address_prefix, const struct pancake_radio_id *r_id, struct in6_addr *address);
+#endif
 #endif
