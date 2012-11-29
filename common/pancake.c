@@ -4,7 +4,7 @@
 #include <stddef.h>
 #include <string.h>
 
-#if PANC_USE_HELPERS != 0
+#if PANC_HELPERS_ENABLED != 0
 #include <helpers.h>
 #endif
 
@@ -205,6 +205,10 @@ PANCSTATUS pancake_send(PANCHANDLE handle, struct ip6_hdr *hdr, uint8_t *payload
 	uint16_t frame_overhead;
 	PANCSTATUS ret;
 
+#if PANC_DEMO_TWO != 0
+	struct color_change color_positions[3];
+#endif
+
 	/* Sanity check */
 	if ( 	handle < 0 ||
 			handle > PANC_MAX_DEVICES ||
@@ -221,8 +225,13 @@ PANCSTATUS pancake_send(PANCHANDLE handle, struct ip6_hdr *hdr, uint8_t *payload
 		compressed_ip6_hdr.size = 40;
 		break;
 	case PANC_COMPRESSION_HCIP:
-		pancake_compress_header(hdr, &compressed_ip6_hdr);
-		// TODO; Add dispatch value
+		ret = pancake_compress_header(hdr, &compressed_ip6_hdr);
+		
+		if(ret != PANCSTATUS_OK) {
+			printf("%s", "There is an error in pancake_compress_header");
+			goto err_out;
+		}
+		compressed_ip6_hdr.dispatch_value = DISPATCH_IPHC;
 		break;
 	default:
 		/* Not supported... yet */
@@ -232,8 +241,10 @@ PANCSTATUS pancake_send(PANCHANDLE handle, struct ip6_hdr *hdr, uint8_t *payload
 	/* Check if fragmentation is needed */
 	frame_overhead = calculate_frame_overhead(dev, &compressed_ip6_hdr);
 	if (frame_overhead + aMaxFrameOverhead + payload_length > aMaxPHYPacketSize) {
+		
 		/* pancake_send_fragmented() sends the whole payload, but in multiple packets */
 		ret = pancake_send_fragmented(dev, raw_data, &compressed_ip6_hdr, payload, payload_length);
+
 		if (ret != PANCSTATUS_OK) {
 			goto err_out;
 		}
@@ -247,6 +258,26 @@ PANCSTATUS pancake_send(PANCHANDLE handle, struct ip6_hdr *hdr, uint8_t *payload
 		memcpy((void*)(raw_data + compressed_ip6_hdr.size + 1), (void*)payload, payload_length);
 
 		length = frame_overhead+payload_length;
+		
+
+
+#if PANC_DEMO_TWO != 0
+		/* Print packet */
+		color_positions[0].color = PANC_COLOR_RED;
+		color_positions[0].position = 1;
+		color_positions[0].description = "6LoWPAN header";
+		
+		color_positions[1].color = PANC_COLOR_GREEN;
+		color_positions[1].position = 1 + compressed_ip6_hdr.size;
+		color_positions[1].description = "IPv6 header";
+		
+		color_positions[2].color = PANC_COLOR_BLUE;
+		color_positions[2].position = length;
+		color_positions[2].description = "Payload";
+		
+		pancake_pretty_print(dev->dev_data, raw_data, length, color_positions, 3);
+#endif
+		
 		ret = dev->cfg->write_func(dev->dev_data, NULL, raw_data, length);
 		if (ret != PANCSTATUS_OK) {
 			goto err_out;
@@ -296,7 +327,7 @@ PANCSTATUS pancake_process_data(void *dev_data, struct pancake_ieee_addr *src, s
 	/* Read dispatch value */
 	switch (*data) {
 	case DISPATCH_IPv6:
-	  	hdr = (struct ip6_hdr *)(data + 1); // TODO: Fix decompression if necessary, see TODOs below as well.
+	  	hdr = (struct ip6_hdr *)(data + 1);
 		payload = data + 1 + 40;
 		payload_length = size - (1 + 40);
 		break;
@@ -330,7 +361,7 @@ PANCSTATUS pancake_process_data(void *dev_data, struct pancake_ieee_addr *src, s
 		}
 	};
 
-	// TODO: AT THIS POINT THE IPv6 HEADER, hdr, SHOULD BE DECOMPRESSED
+	// TODO: AT THIS POINT THE IPv6 HEADER, hdr, SHOULD BE DECOMPRESSED(?)
 	
 	event.type = PANC_EVENT_DATA_RECEIVED;
 	event.data_received.hdr = hdr;

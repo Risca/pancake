@@ -6,6 +6,13 @@
 #include <string.h>
 #include <unistd.h>
 
+#ifdef _WIN32
+#include <windows.h>
+#define SLEEP(x) Sleep(x*1000)
+#else
+#define SLEEP(x) sleep(x)
+#endif
+
 extern struct pancake_port_cfg linux_cfg;
 struct pancake_options_cfg my_linux_options = {
 
@@ -16,15 +23,11 @@ PANCHANDLE my_pancake_handle;
 
 static void my_read_callback(struct ip6_hdr *hdr, uint8_t *payload, uint16_t size)
 {
-	if (hdr == NULL) {
-		printf("main.c: Got message: %s\n", payload);
-		return;
-	}
 
 #if 0
 	printf("main.c: Looping incoming packet to output again\n");
 	pancake_send(my_pancake_handle, hdr, payload, size);
-#else
+#elif 0
 	printf("main.c: We received the following packet:\n");
 	pancake_print_raw_bits(stdout, payload, size);
 #endif
@@ -44,14 +47,11 @@ void my_test_function()
 
 	/* Send 3 packets with 1 seconds delay */
 	for (i=0; i < 3; i++) {
+		fprintf(stdout, "Sending small packet:\n");
 		*payload = i;
 		*(payload+1) = 255-i;
 		populate_dummy_ipv6_header(hdr, 2);
-#ifdef _WIN32
-		Sleep(timeout*1000);
-#else
-		sleep(timeout);
-#endif
+		SLEEP(timeout);
 		ret = pancake_send(my_pancake_handle, hdr, payload, payload_length);
 		if (ret != PANCSTATUS_OK) {
 			printf("Failed to send!\n");
@@ -59,38 +59,46 @@ void my_test_function()
 		}
 	}
 
-	for (i = 0; i < 200; i++) {
+	fprintf(stdout, "Sending BIG packet:\n");
+	for (i = 0; i < 200-20; i++) {
 		payload[i] = i;
 	}
-	populate_dummy_ipv6_header(hdr, 200);
-	payload_length = 200;
-#ifdef _WIN32
-	Sleep(timeout*1000);
-#else
-	sleep(timeout);
-#endif
+	populate_dummy_ipv6_header(hdr, 200-20);
+	payload_length = 200-20;
+	SLEEP(timeout);
 	ret = pancake_send(my_pancake_handle, hdr, payload, payload_length);
 	if (ret != PANCSTATUS_OK) {
-		printf("Failed to send big packet!\n");
+		printf("Failed to send BIG packet!\n");
 	}
 }
 
 int main(int argc, char **argv)
 {
 	PANCSTATUS ret;
+<<<<<<< HEAD
 #if 0
 	ret = pancake_init(&my_pancake_handle, &my_options, &linux_cfg, NULL, my_read_callback);
+=======
+
+	ret = pancake_init(&my_pancake_handle, &my_linux_options, &linux_cfg, stdout, my_read_callback);
+>>>>>>> feature/colored-output
 	if (ret != PANCSTATUS_OK) {
 		printf("main.c: pancake failed to initialize!\n");
 		return EXIT_FAILURE;
 	}
 
+<<<<<<< HEAD
 
+=======
+>>>>>>> feature/colored-output
 #if 1
 	my_test_function();
 #else
 	ret = pancake_reassembly_test(my_pancake_handle);
+<<<<<<< HEAD
 
+=======
+>>>>>>> feature/colored-output
 	if (ret != PANCSTATUS_OK) {
 		printf("main.c: reassembly test failed\n");
 	}

@@ -62,6 +62,26 @@ static PANCSTATUS pancake_send_fragmented(struct pancake_main_dev *dev, uint8_t 
 	uint16_t space_available;
 	uint16_t offset = 0;
 	uint8_t frag_hdr_len = 5;
+	
+#if PANC_DEMO_TWO != 0
+	struct color_change color_positions[] = {
+		{
+			.color = PANC_COLOR_RED,
+			.position = 5,
+			.description = "6LoWPAN header",
+		},
+		{
+			.color = PANC_COLOR_GREEN,
+			.position = 5+comp_hdr->size,
+			.description = "IPv6 Header",
+		},
+		{
+			.color = PANC_COLOR_BLUE,
+			.position = comp_hdr->size + payload_len,
+			.description = "Payload",
+		}
+	};
+#endif
 
 	/* Calculate some stuff we'll need later */
 	frame_overhead = calculate_frame_overhead(dev, comp_hdr);
@@ -92,10 +112,18 @@ static PANCSTATUS pancake_send_fragmented(struct pancake_main_dev *dev, uint8_t 
 			memcpy((void*)(raw_data + dgram_hdr_len), (void*)(payload + (offset - comp_hdr->size)), space_available);
 		}
 
+#if PANC_DEMO_TWO != 0
+		/* Print packet */
+		pancake_pretty_print(dev->dev_data, raw_data, dgram_hdr_len + space_available, color_positions, 3);
+		if (offset == 0) {
+			color_positions[1].position = color_positions[0].position;
+		}
+#endif
+
 		/* Adjust counters */
 		offset      += space_available;
 		payload_len -= space_available;
-
+		
 		/* Time to pay a little visit to the transmission fairy */
 		ret = dev->cfg->write_func(dev->dev_data, NULL, raw_data, dgram_hdr_len + space_available);
 		if (ret != PANCSTATUS_OK) {
@@ -106,9 +134,14 @@ static PANCSTATUS pancake_send_fragmented(struct pancake_main_dev *dev, uint8_t 
 	/* Last packet is a little special */
 	/* Fill in fragmentation header */
 	populate_fragmentation_header(frag_hdr, dgram_len, offset);
-
+	
 	/* Copy payload */
 	memcpy((void*)(raw_data + dgram_hdr_len), (void*)(payload + (offset - comp_hdr->size)), payload_len);
+
+#if PANC_DEMO_TWO != 0
+	/* Print packet */
+	pancake_pretty_print(dev->dev_data, raw_data, dgram_hdr_len + payload_len, color_positions, 3);
+#endif
 
 	/* Time to pay a little visit to the transmission fairy */
 	ret = dev->cfg->write_func(dev->dev_data, NULL, raw_data, dgram_hdr_len + payload_len);

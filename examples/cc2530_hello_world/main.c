@@ -27,7 +27,7 @@
 //_____ V A R I A B L E   D E C L A R A T I O N S______________________________
 extern struct pancake_port_cfg cc2530_cfg;
 struct pancake_options_cfg my_options = {
-	.compression = PANC_COMPRESSION_NONE,
+	.compression = PANC_COMPRESSION_HCIP,
 	.security = PANC_SECURITY_NONE,
 };
 PANCHANDLE my_pancake_handle;

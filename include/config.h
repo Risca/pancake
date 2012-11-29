@@ -7,5 +7,6 @@
 #define PANC_HELPERS_ENABLED 0
 #define PANC_HAVE_PRINTF 0
 #define PANC_BIG_ENDIAN 0
+#define PANC_DEMO_TWO 0
 
 #endif
