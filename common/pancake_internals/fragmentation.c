@@ -123,7 +123,7 @@ static PANCSTATUS pancake_send_fragmented(struct pancake_main_dev *dev, uint8_t 
 		/* Adjust counters */
 		offset      += space_available;
 		payload_len -= space_available;
-		
+
 		/* Time to pay a little visit to the transmission fairy */
 		ret = dev->cfg->write_func(dev->dev_data, NULL, raw_data, dgram_hdr_len + space_available);
 		if (ret != PANCSTATUS_OK) {

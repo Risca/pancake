@@ -1,5 +1,4 @@
 #include <pancake.h>
-#include <stdint.h>
 #include <stdio.h>
 #include <unistd.h>
 #include <string.h>
@@ -19,14 +18,14 @@ static PANCSTATUS linux_destroy_func(void *dev_data);
 
 struct pancake_port_cfg linux_cfg = {
 	.init_func = linux_init_func,
-    .write_func = linux_write_func,
+	.write_func = linux_write_func,
 	.destroy_func = linux_destroy_func,
 };
 
-#if PANC_HAVE_PRINTF != 0
-#define pancake_fprintf(...) fprintf(__VA_ARGS__)
+#if PANC_HAVE_PRINTF == 0
+	#define pancake_fprintf(...) {}
 #else
-#define pancake_fprintf(...) {}
+	#define pancake_fprintf(...) fprintf(__VA_ARGS__)
 #endif
 
 
@@ -75,6 +74,9 @@ void pancake_pretty_print(FILE *out, uint8_t *bytes, size_t length, struct color
 	hConsole = GetStdHandle(STD_OUTPUT_HANDLE);
 #else
 	FILE * hConsole = out;
+	if (hConsole == NULL) {
+		hConsole = stdout;
+	}
 #endif
 	uint8_t bit;
 	uint16_t i;
@@ -158,7 +160,6 @@ void pancake_pretty_print(FILE *out, uint8_t *bytes, size_t length, struct color
 
 void pancake_print_raw_bits(FILE *out, uint8_t *bytes, size_t length)
 {
-#if PANC_HAVE_PRINTF != 0
 	uint8_t bit;
 	uint16_t i;
 	uint8_t j;
@@ -171,41 +172,54 @@ void pancake_print_raw_bits(FILE *out, uint8_t *bytes, size_t length)
 		out = stdout;
 	}
 
-	fputs("+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+\n", out);
+	pancake_fprintf(out, "+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+\n");
 	for (i=0; i < length; i++) {
-		fprintf(out, "|");
+		pancake_fprintf(out, "|");
 		for (j=0; j < 8; j++) {
 			bit = ( (*bytes) >> (7-j%8) ) & 0x01;
-			fprintf(out, "%i", bit);
+			pancake_fprintf(out, "%i", bit);
 
 			/* Place a space between every bit except last */
 			if (j != 7) {
-				fprintf(out, " ");
+				pancake_fprintf(out, " ");
 			}
 		}
 
 		if ( (i+1) % 4 == 0 ) {
-			fputs("|\n", out);
-			fputs("+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+\n", out);
+			pancake_fprintf(out, "|\n");
+			pancake_fprintf(out, "+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+\n");
 		}
 		bytes++;
 	}
 	if (length % 4 != 0) {
-		fputs("|\n+", out);
+		pancake_fprintf(out, "|\n+");
 		for (i=0; i < length % 4; i++) {
-			fputs("-+-+-+-+-+-+-+-+", out);
+			pancake_fprintf(out, "-+-+-+-+-+-+-+-+");
 		}
-		fputs("\n", out);
+		pancake_fprintf(out, "\n");
 	}
-#endif
 }
 
 void populate_dummy_ipv6_header(struct ip6_hdr *hdr, uint16_t payload_length)
 {
-	/* Loopback (::1/128) */
-	struct in6_addr addr = {
-			0xfe, 0x80, 0, 0, 0, 0, 0, 0,
-			0, 0, 0, 0xff, 0xfe, 0, 0, 1};
+	struct pancake_radio_id radio_id = {
+#if 1
+		.r_pan_addr = {0xFF, 0xFF},
+		.r_short_addr = {0, 1},
+#if 1
+		.type = PANC_RADIO_ID_SHORT_ADDR_ONLY,
+#else
+		.type = PANC_RADIO_ID_PAN_AND_SHORT_ADDR,
+#endif
+#else
+		.type = PANC_RADIO_ID_EUI64,
+		.r_EUI64 = {0, 2, 4, 8, 16, 32, 64, 128},
+#endif
+	};
+	struct in6_addr addr;
+
+	/* Populate in6 address */
+	pancake_get_in6_address(LINK_LOCAL_PREFIX, &radio_id, &addr);
 
 	// Version + Traffic Control [ECN(2) + DSCP(6)] + Flow id 26
 	hdr->ip6_flow	=	htonl((6 << 28) | (0x1 << 26) | (26 << 0));
@@ -213,7 +227,7 @@ void populate_dummy_ipv6_header(struct ip6_hdr *hdr, uint16_t payload_length)
 	hdr->ip6_nxt	=	254;
 	hdr->ip6_hops	=	2;
 
-    // Add next bytes
+	// Add next bytes
 	memcpy((uint8_t *)hdr + 8, &addr, 16);
 	memcpy((uint8_t *)hdr + 24, &addr, 16);
 }
@@ -281,8 +295,8 @@ static PANCSTATUS linux_init_func(void *dev_data)
 	color_output(GetStdHandle(STD_OUTPUT_HANDLE), PANC_COLOR_WHITE);
 	win_thread = CreateThread(NULL, 0, &linux_read_thread, dev_data, 0, NULL);
 #else // Linux
-	pthread_create (&my_thread, NULL, (void *) &linux_read_thread, dev_data);
 	color_output(stdout, PANC_COLOR_WHITE);
+	pthread_create (&my_thread, NULL, (void *) &linux_read_thread, dev_data);
 #endif
 	return PANCSTATUS_OK;
 }
@@ -291,6 +305,10 @@ static PANCSTATUS linux_write_func(void *dev_data, struct pancake_ieee_addr *des
 {
 #if PANC_DEMO_TWO == 0
 	FILE *out = (FILE*)dev_data;
+
+	if (out == NULL) {
+		out = stdout;
+	}
 
 	fputs("linux.c: Transmitting the following packet to the ether:\n", out);
 	pancake_print_raw_bits(out, data, length);

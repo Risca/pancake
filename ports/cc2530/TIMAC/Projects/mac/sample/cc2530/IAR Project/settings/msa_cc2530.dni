@@ -1,5 +1,5 @@
 [DebugChecksum]
-Checksum=-1377294071
+Checksum=158255893
 [DisAssemblyWindow]
 NumStates=_ 1
 State 1=_ 1
@@ -17,11 +17,9 @@ UseTrigger=1
 TriggerName=main
 LimitSize=0
 ByteLimit=50
-[TermIOLog]
-LoggingEnabled=_ 0
-LogFile=_ ""
 [Breakpoints]
-Count=0
+Bp0=_ "STD_CODE" "{$PROJ_DIR$\..\..\..\..\..\..\..\..\examples\cc2530_hello_world\main.c}.94.16@1" 1 0 0 0 "" 0 ""
+Count=1
 [ChipconEmu]
 Stop timers on halt=0
 Leave target running=1
@@ -29,6 +27,9 @@ Leave target running=1
 LoggingEnabled=_ 0
 LogFile=_ ""
 Category=_ 0
+[TermIOLog]
+LoggingEnabled=_ 0
+LogFile=_ ""
 [Aliases]
 A0=_ "Z:\CDIO\code\ports\cc2530\TIMAC\Components\osal\mcu\cc2530\OSAL_Math.s51" ""
 Count=1

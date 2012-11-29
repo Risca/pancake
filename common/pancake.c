@@ -49,19 +49,20 @@ struct pancake_main_dev {
 };
 static struct pancake_main_dev devs[PANC_MAX_DEVICES];
 
-static struct pancake_event_data_received data_received;
+//static struct pancake_event_data_received data_received;
 static pancake_event event;
 
-#if PANC_HAVE_PRINTF != 0
-	#define pancake_printf(...) printf(__VA_ARGS__)
-#else
+#if PANC_HAVE_PRINTF == 0
 	#define pancake_printf(...) {}
+#else
+	#define pancake_printf(...) printf(__VA_ARGS__)
 #endif
 
-#if PANC_USE_HELPERS != 0
-	#define pancake_print_raw_bits(...) pancake_print_raw_bits(__VA_ARGS__)
-#else
+#if PANC_HELPERS_ENABLED == 0
 	#define pancake_print_raw_bits(...) {}
+#else
+	#define pancake_print_raw_bits(...) pancake_print_raw_bits(__VA_ARGS__)
+	extern void pancake_print_raw_bits(FILE *out, uint8_t *bytes, size_t length);
 #endif
 
 
@@ -104,6 +105,7 @@ static uint16_t calculate_frame_overhead(struct pancake_main_dev *dev, struct pa
 #include "pancake_internals/fragmentation.c"
 #include "pancake_internals/reassembly.c"
 #include "pancake_internals/header_compression.c"
+#include "pancake_internals/address_autoconfiguration.c"
 
 
 PANCSTATUS pancake_init(PANCHANDLE *handle, struct pancake_options_cfg *options_cfg, struct pancake_port_cfg *port_cfg, void *dev_data, event_callback_func event_callback)
@@ -224,13 +226,13 @@ PANCSTATUS pancake_send(PANCHANDLE handle, struct ip6_hdr *hdr, uint8_t *payload
 		compressed_ip6_hdr.hdr_data = (uint8_t *)hdr;
 		compressed_ip6_hdr.size = 40;
 		break;
-	case PANC_COMPRESSION_HCIP:
+	case PANC_COMPRESSION_IPHC:
 		ret = pancake_compress_header(hdr, &compressed_ip6_hdr);
-		
 		if(ret != PANCSTATUS_OK) {
 			printf("%s", "There is an error in pancake_compress_header");
 			goto err_out;
 		}
+
 		compressed_ip6_hdr.dispatch_value = DISPATCH_IPHC;
 		break;
 	default:
@@ -324,49 +326,55 @@ PANCSTATUS pancake_process_data(void *dev_data, struct pancake_ieee_addr *src, s
 	}
 	dev = &devs[handle];
 
-	/* Read dispatch value */
-	switch (*data) {
-	case DISPATCH_IPv6:
-	  	hdr = (struct ip6_hdr *)(data + 1);
-		payload = data + 1 + 40;
-		payload_length = size - (1 + 40);
-		break;
-	case DISPATCH_HC1:
-	case DISPATCH_BC0:
-	case DISPATCH_IPHC:
-	default:
-		switch (*data & 0xF8) {
-		case DISPATCH_FRAG1:
-		case DISPATCH_FRAGN:
-			ret = pancake_reassemble(dev, &ra_buf, src, dst, data, size);
-			if (ret != PANCSTATUS_OK) {
-				goto out;
-			}
-			
-			hdr = (struct ip6_hdr *)ra_buf->data; // TODO: Fix decompression if necessary
-			payload = ra_buf->data + 40;
-			payload_length = (ra_buf->frag_hdr.size & 0x7FF) - 40;
+	while( PANCSTATUS_OK != ret ) {
+	
+		/* Read dispatch value */
+		switch (*data) {
+		case DISPATCH_IPv6:
+			hdr = (struct ip6_hdr *)(data + 1);
+			payload = data + 1 + 40;
+			payload_length = size - (1 + 40);
+			ret = PANCSTATUS_OK;
 			break;
+		case DISPATCH_HC1:
+		case DISPATCH_BC0:
+		case DISPATCH_IPHC:
+			return PANCSTATUS_ERR;
 		default:
-			if ((*data & 0xC0) == DISPATCH_MESH) {
-				/* Not implemented yet */
-				goto out;
+			switch (*data & 0xF8) { // 0b11111000
+			case DISPATCH_FRAG1:
+			case DISPATCH_FRAGN:
+				ret = pancake_reassemble(dev, &ra_buf, src, dst, data, size);
+				if (ret != PANCSTATUS_OK) {
+					goto out;
+				}
+				
+				*data = 0x41;
+				memcpy(data+1, ra_buf->data, (ra_buf->frag_hdr.size & 0x7FF));
+				ret = PANCSTATUS_NOTREADY;
+				//payload = ra_buf->data + 40;
+				//payload_length = (ra_buf->frag_hdr.size & 0x7FF) - 40;
+				break;
+			default:
+				if ((*data & 0xC0) == DISPATCH_MESH) {
+					/* Not implemented yet */
+					goto out;
+				}
+				else {
+					/* Not a LowPAN frame */
+					pancake_printf("Not a LoWPAN frame?:\n");
+					pancake_print_raw_bits(NULL, data, size);
+					goto out;
+				}
 			}
-			else {
-				/* Not a LowPAN frame */
-				pancake_printf("Not a LoWPAN frame?:\n");
-				pancake_print_raw_bits(NULL, data, size);
-				goto out;
-			}
-		}
-	};
-
+		};
+	}
 	// TODO: AT THIS POINT THE IPv6 HEADER, hdr, SHOULD BE DECOMPRESSED(?)
 	
 	event.type = PANC_EVENT_DATA_RECEIVED;
 	event.data_received.hdr = hdr;
-    event.data_received.payload = payload;
-    event.data_received.payload_length = payload_length;
+	event.data_received.payload = payload;
+	event.data_received.payload_length = payload_length;
 	
 	/* Relay data to upper levels */
 	ret = PANCSTATUS_OK;

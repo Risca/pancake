@@ -457,6 +457,7 @@
           <state>$PROJ_DIR$\..\..\..\..\..\Components\services\sdata</state>
           <state>$PROJ_DIR$\..\..\..\..\..\..\..\..\include</state>
           <state>$PROJ_DIR$\..\..\..\..\..\..\..\..\include\limited\netinet</state>
+          <state>$PROJ_DIR$\..\..\..\..\..\..\..\..\include\limited\</state>
           <state>$PROJ_DIR$\..\..\..\..\..\..\include</state>
           <state>$PROJ_DIR$\..\..\..\..\..\..\common\pancake_internals</state>
         </option>

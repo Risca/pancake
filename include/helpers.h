@@ -6,7 +6,7 @@
 /* Color change struct */
 typedef enum {
 	PANC_COLOR_RED = 0,
-	PANC_COLOR_GREEN = 1,
+	PANC_COLOR_GREEN,
 	PANC_COLOR_YELLOW,
 	PANC_COLOR_BLUE,
 	PANC_COLOR_WHITE,

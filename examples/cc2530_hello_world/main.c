@@ -27,7 +27,7 @@
 //_____ V A R I A B L E   D E C L A R A T I O N S______________________________
 extern struct pancake_port_cfg cc2530_cfg;
 struct pancake_options_cfg my_options = {
-	.compression = PANC_COMPRESSION_HCIP,
+	.compression = PANC_COMPRESSION_NONE,
 	.security = PANC_SECURITY_NONE,
 };
 PANCHANDLE my_pancake_handle;
@@ -40,8 +40,8 @@ static uint8_t is_device = FALSE;
 
 static uint8_t 			data[127*3];
 static uint16_t			payload_length = 2;
-static struct ip6_hdr 	*hdr 		= (struct ip6_hdr *)(data+1);
-static uint8_t			*payload	= data + 1 + 40;
+static struct ip6_hdr 	*hdr 		= (struct ip6_hdr *)(data);
+static uint8_t			*payload	= data + 40;
 
 
 //_____ F U N C T I O N   D E F I N I T I O N S________________________________
@@ -74,7 +74,7 @@ static void my_event_callback(pancake_event *event)
 			    is_device ) {
 				    
 				uint8_t hello_world[] = "Hello, World!";
-				payload_length = 130;//sizeof(hello_world);
+				payload_length =  130; //sizeof(hello_world);
 				
 				memcpy(payload, hello_world, sizeof(hello_world));
 				populate_dummy_ipv6_header(hdr, payload_length);
@@ -91,8 +91,7 @@ static void my_event_callback(pancake_event *event)
 				payload = event->data_received.payload;
 			  	payload_length = event->data_received.payload_length;
 		  
-				PANCSTATUS ret = pancake_send(my_pancake_handle, hdr, payload, payload_length);
-			  
+				PANCSTATUS ret = pancake_send(my_pancake_handle, hdr, payload, payload_length);  
 			}
 			break;
 		}
@@ -107,9 +106,6 @@ int main(int argc, int **argv)
 {
 	/* Initialize hardware */
 	HAL_BOARD_INIT();
-	
-	/* Set up variables */
-	data[0] = 0x41;
 	
 	/* Initialize the pancake framework */
 	PANCSTATUS ret = pancake_init(&my_pancake_handle, &my_options, &cc2530_cfg, NULL, my_event_callback);

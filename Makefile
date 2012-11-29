@@ -46,6 +46,9 @@ all:
 $(TARGET): $(OBJECTS)
 	$(LD) $(LDFLAGS) -o $(BUILDDIR)/$@ $^
 
+$(BUILDDIR)/port.o: $(PORTSDIR)/$(TARGET)/port.c
+	$(CC) $(CFLAGS) -c -o $@ $<
+
 $(BUILDDIR)/%.o: %.c
 	$(CC) $(CFLAGS) -c -o $@ $<
 
@@ -55,7 +58,7 @@ $(BUILDDIR):
 	@test -d $(BUILDDIR) || mkdir $(BUILDDIR)
 
 tags:
-	@$(CTAGS) $(shell find -name "*.c")
+	$(CTAGS) -R --langmap=C:.c.h --languages=C
 
 clean:
 	$(RM) $(OBJECTS) $(TARGETS)

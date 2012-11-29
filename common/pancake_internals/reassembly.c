@@ -1,5 +1,4 @@
 #if PANC_TESTS_ENABLED != 0
-extern void pancake_print_raw_bits(FILE *out, uint8_t *bytes, size_t length);
 static uint8_t fragmented_packet[3][102];
 
 static void populate_fragmented_packets(void);
@@ -132,7 +131,7 @@ static PANCSTATUS find_reassembly_buffer(struct pancake_reassembly_buffer **ra_b
 			}
 
 			/* Compare IEEE 802.15.4 source address */
-			if( PANCAKE_IEEE_ADDR_MODE_SHORT == src->addr_mode ) {
+			if (src->addr_mode == PANCAKE_IEEE_ADDR_MODE_SHORT) {
 				r = memcmp(&ra_bufs[i].src.ieee_short, &src->ieee_short, 2);
 			}
 			else {
@@ -143,7 +142,7 @@ static PANCSTATUS find_reassembly_buffer(struct pancake_reassembly_buffer **ra_b
 			}
 
 			/* Compare IEEE 802.15.4 destination address */
-			if( PANCAKE_IEEE_ADDR_MODE_SHORT == dst->addr_mode ) {
+			if (dst->addr_mode == PANCAKE_IEEE_ADDR_MODE_SHORT) {
 				r = memcmp(&ra_bufs[i].dst.ieee_short, &dst->ieee_short, 2);
 			}
 			else {
