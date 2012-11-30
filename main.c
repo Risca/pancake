@@ -16,8 +16,6 @@
 extern struct pancake_port_cfg linux_cfg;
 struct pancake_options_cfg my_linux_options = {
 	.compression = PANC_COMPRESSION_NONE,
-	.compression = PANC_COMPRESSION_IPHC,
-
 	.security = PANC_SECURITY_NONE,
 };
 PANCHANDLE my_pancake_handle;
@@ -89,8 +87,7 @@ int main(int argc, char **argv)
 {
 	PANCSTATUS ret;
 
-#if 0
-	ret = pancake_init(&my_pancake_handle, &my_linux_options, &linux_cfg, stdout, my_read_callback);
+	ret = pancake_init(&my_pancake_handle, &my_linux_options, &linux_cfg, NULL, my_read_callback);
 
 	if (ret != PANCSTATUS_OK) {
 		printf("main.c: pancake failed to initialize!\n");
@@ -98,7 +95,7 @@ int main(int argc, char **argv)
 	}
 
 
-#if 1
+#if 0
 	my_test_function();
 #else
 	ret = pancake_reassembly_test(my_pancake_handle);

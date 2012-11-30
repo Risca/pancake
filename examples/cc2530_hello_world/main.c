@@ -96,9 +96,6 @@ static void my_event_callback(pancake_event *event)
 			break;
 		}
 	}
-	
-  
-  	
 }
 
 

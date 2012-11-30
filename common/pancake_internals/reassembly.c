@@ -218,17 +218,18 @@ static PANCSTATUS pancake_reassemble(struct pancake_main_dev *dev, struct pancak
 
 	/* Copy data */
 	if (frag_dispatch == DISPATCH_FRAG1) {
-		/* First packet */
-		memcpy(&buf->data[0], (data+5), data_length);
+		/* First packet. +1 for dispatch byte */
+		memcpy(&buf->data[0], (data+4), data_length+1);
+		buf->octets_received += 1;
 	}
 	else {
-		/* Subsequent packets */
-		memcpy(&buf->data[frag_hdr->offset*8], (data+5), data_length);
+		/* Subsequent packets. +1 for dispatch byte */
+		memcpy(&buf->data[frag_hdr->offset*8 + 1], (data+5), data_length);
 	}
 	buf->octets_received += (data_length - 5);
 
-	/* Check if we're done */
-	if ((buf->frag_hdr.size & 0x7FF) != buf->octets_received) {
+	/* Check if we're done. Payload + dispatch byte */
+	if (((buf->frag_hdr.size & 0x7FF) + 1) != buf->octets_received) {
 		return PANCSTATUS_NOTREADY;
 	}
 
@@ -256,16 +257,61 @@ PANCSTATUS pancake_reassembly_test(PANCHANDLE handle)
 		},
 		.addr_mode = PANCAKE_IEEE_ADDR_MODE_EXTENDED,
 	};
+#if PANC_USE_COLOR !=0
+	struct color_change colors[] = {
+		{
+			.color = PANC_COLOR_RED,
+			.position = 4,
+			.description = "Frag hdr",
+		},
+		{
+			.color = PANC_COLOR_YELLOW,
+			.position = 5,
+			.description = "IPv6 Dispatch byte",
+		},
+		{
+			.color = PANC_COLOR_GREEN,
+			.position = 40+5,
+			.description = "IPv6 header",
+		},
+		{
+			.color = PANC_COLOR_BLUE,
+			.position = 101,
+			.description = "Payload",
+		},
+	};
+#endif
 
 	pancake_printf("pancake_reassembly_test(): Initiating reassembly test\n");
 
+	/* Print 1st packet */
 	populate_fragmented_packets();
 	pancake_printf("Packet #1:\n");
+#if PANC_USE_COLOR
+	pancake_pretty_print(NULL, fragmented_packet[0], 101, colors, sizeof(colors)/sizeof(struct color_change));
+#else
 	pancake_print_raw_bits(NULL, fragmented_packet[0], 101);
+#endif
+
+	/* Print 2nd packet */
 	pancake_printf("Packet #2:\n");
+#if PANC_USE_COLOR
+	colors[0].position = 5;
+	colors[1].position = 5;
+	colors[2].position = 5;
+	pancake_pretty_print(NULL, fragmented_packet[1], 101, colors, sizeof(colors)/sizeof(struct color_change));
+#else
 	pancake_print_raw_bits(NULL, fragmented_packet[1], 101);
+#endif
+
+	/* Print 3rd packet */
 	pancake_printf("Packet #3:\n");
+#if PANC_USE_COLOR
+	pancake_pretty_print(NULL, fragmented_packet[2], 53, colors, sizeof(colors)/sizeof(struct color_change));
+#else
 	pancake_print_raw_bits(NULL, fragmented_packet[2], 53);
+#endif
+
 	/* Memory test */
 	for (i = 0; i < PANC_MAX_CONCURRENT_REASSEMBLIES; i++) {
 		/* Start fresh and change tag (LSB) */
@@ -299,21 +345,34 @@ PANCSTATUS pancake_reassembly_test(PANCHANDLE handle)
 
 		/* Check data */
 		ret = PANCSTATUS_ERR;
-		res = memcmp(buf->data, &fragmented_packet[0][5], 96);
+		res = memcmp(buf->data, &fragmented_packet[0][4], 97);
 		if (res != 0) {
+			pancake_printf("First packet differs\n");
 			goto err_out;
 		}
-		res = memcmp(buf->data + 96, &fragmented_packet[1][5], 96);
+		res = memcmp(buf->data + 97, &fragmented_packet[1][5], 96);
 		if (res != 0) {
+			pancake_printf("Second packet differs\n");
 			goto err_out;
 		}
-		res = memcmp(buf->data + 2*96, &fragmented_packet[2][5], 48);
+		res = memcmp(buf->data + 2*97 - 1, &fragmented_packet[2][5], 48);
 		if (res != 0) {
+			pancake_printf("Third packet differs\n");
 			goto err_out;
 		}
 	}
+
+	/* Print reassembled packet */
 	pancake_printf("Reassembled packet:\n");
+#if PANC_USE_COLOR
+	colors[0].position = 0;
+	colors[1].position = 1;
+	colors[2].position = 41;
+	colors[3].position = buf->octets_received;
+	pancake_pretty_print(NULL, buf->data, buf->octets_received, colors, sizeof(colors)/sizeof(struct color_change));
+#else
 	pancake_print_raw_bits(NULL, buf->data, buf->octets_received);
+#endif
 
 	pancake_printf("pancake_reassembly_test(): Reassembly test successful\n");
 	return PANCSTATUS_OK;

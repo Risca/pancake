@@ -207,7 +207,7 @@ PANCSTATUS pancake_send(PANCHANDLE handle, struct ip6_hdr *hdr, uint8_t *payload
 	uint16_t frame_overhead;
 	PANCSTATUS ret;
 
-#if PANC_DEMO_TWO != 0
+#if PANC_USE_COLOR != 0
 	struct color_change color_positions[3];
 #endif
 
@@ -260,10 +260,8 @@ PANCSTATUS pancake_send(PANCHANDLE handle, struct ip6_hdr *hdr, uint8_t *payload
 		memcpy((void*)(raw_data + compressed_ip6_hdr.size + 1), (void*)payload, payload_length);
 
 		length = frame_overhead+payload_length;
-		
 
-
-#if PANC_DEMO_TWO != 0
+#if PANC_USE_COLOR != 0
 		/* Print packet */
 		color_positions[0].color = PANC_COLOR_RED;
 		color_positions[0].position = 1;
@@ -276,7 +274,6 @@ PANCSTATUS pancake_send(PANCHANDLE handle, struct ip6_hdr *hdr, uint8_t *payload
 		color_positions[2].color = PANC_COLOR_BLUE;
 		color_positions[2].position = length;
 		color_positions[2].description = "Payload";
-		
 		pancake_pretty_print(dev->dev_data, raw_data, length, color_positions, 3);
 #endif
 		

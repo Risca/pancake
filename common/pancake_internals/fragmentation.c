@@ -112,7 +112,7 @@ static PANCSTATUS pancake_send_fragmented(struct pancake_main_dev *dev, uint8_t 
 			memcpy((void*)(raw_data + dgram_hdr_len), (void*)(payload + (offset - comp_hdr->size)), space_available);
 		}
 
-#if PANC_DEMO_TWO != 0
+#if PANC_USE_COLOR != 0
 		/* Print packet */
 		pancake_pretty_print(dev->dev_data, raw_data, dgram_hdr_len + space_available, color_positions, 3);
 		if (offset == 0) {
@@ -138,7 +138,7 @@ static PANCSTATUS pancake_send_fragmented(struct pancake_main_dev *dev, uint8_t 
 	/* Copy payload */
 	memcpy((void*)(raw_data + dgram_hdr_len), (void*)(payload + (offset - comp_hdr->size)), payload_len);
 
-#if PANC_DEMO_TWO != 0
+#if PANC_USE_COLOR != 0
 	/* Print packet */
 	pancake_pretty_print(dev->dev_data, raw_data, dgram_hdr_len + payload_len, color_positions, 3);
 #endif

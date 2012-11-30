@@ -30,6 +30,9 @@ struct pancake_port_cfg linux_cfg = {
 
 
 #ifdef _WIN32
+#define SLEEP(x) Sleep(x*1000)
+HANDLE win_thread;
+
 static WORD colors[] = {
 	FOREGROUND_RED | FOREGROUND_INTENSITY,                    /* Red */
 	FOREGROUND_GREEN | FOREGROUND_INTENSITY,                  /* Green */
@@ -51,7 +54,10 @@ void color_output(HANDLE hConsole, int COLOR)
 #define FOREGROUND_TURCOSE FOREGROUND_BLUE | FOREGROUND_GREEN
 #define FOREGROUND_DARK_YELLOW FOREGROUND_RED | FOREGROUND_GREEN
 
-#else
+#else /* Probably Linux */
+#define SLEEP(x) sleep(x)
+pthread_t my_thread;
+
 static int colors[] = {
 	31, /* Red */
 	32, /* Green */
@@ -64,7 +70,6 @@ void color_output(FILE *handle, PANC_COLOR color)
 {
 	fprintf(handle, "\033[1;%dm", colors[color]); 
 }
-
 #endif
 
 void pancake_pretty_print(FILE *out, uint8_t *bytes, size_t length, struct color_change *color_positions, uint8_t number_of_colors)
@@ -115,7 +120,7 @@ void pancake_pretty_print(FILE *out, uint8_t *bytes, size_t length, struct color
 		
 		// Change color
 		// TODO: Make this less dangerous
-		while(i > 0 && current_color_change->position == i) {
+		while(current_color_change->position == i) {
 			current_color_change++;
 		}
 		
@@ -232,16 +237,9 @@ void populate_dummy_ipv6_header(struct ip6_hdr *hdr, uint16_t payload_length)
 	memcpy((uint8_t *)hdr + 24, &addr, 16);
 }
 
-#ifdef _WIN32
-HANDLE win_thread;
-#else // Linux
-pthread_t my_thread;
-#endif
-
 static void linux_read_thread(void *dev_data)
 {
-
-#if PANC_DEMO_TWO == 0
+#if 0
 	uint8_t i, timeout = 1;
 	uint8_t data[127*3];
 	uint16_t length = 1 + 40 + 2;
@@ -250,42 +248,25 @@ static void linux_read_thread(void *dev_data)
 	struct ip6_hdr 	*hdr 		= (struct ip6_hdr *)(data+1);
 	uint8_t			*payload	= data + 1 + 40;
 
+	if (out == NULL) {
+		out = stdout;
+	}
+
 	/* Raw IPv6 packet dispatch value */
 	data[0] = 0x41;
 
-#if 1
 	/* Send 3 packets with 1 seconds delay */
 	for (i=0; i < 3; i++) {
 		*payload = i;
 		*(payload+1) = 255-i;
 		populate_dummy_ipv6_header(hdr, 2);
-#ifdef _WIN32
-        Sleep(timeout*1000);
-#else
-		sleep(timeout);
-#endif
+		SLEEP(timeout);
 		pancake_fprintf(out, "linux.c: Patching incoming packet to pancake_process_data()\n");
 		ret = pancake_process_data(dev_data, NULL, NULL, data, length);
 		if (ret != PANCSTATUS_OK) {
 			/* What to do, what to do? */
 		}
 	}
-#endif
-
-#if 1
-	/* Send 1 big packet */
-	for (i=0; i < 200; i++) {
-		*payload++ = (uint8_t)i;
-	}
-	populate_dummy_ipv6_header(hdr, 200);
-	length = 200 + 1 + 40;
-	pancake_fprintf(out, "linux.c: Patching incoming packet to pancake_process_data()\n");
-	ret = pancake_process_data(dev_data, NULL, NULL, data, length);
-	if (ret != PANCSTATUS_OK) {
-		/* What to do, what to do? */
-	}
-#endif
-
 #endif /* Whole function */
 }
 
