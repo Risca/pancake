@@ -15,7 +15,7 @@
 
 extern struct pancake_port_cfg linux_cfg;
 struct pancake_options_cfg my_linux_options = {
-	.compression = PANC_COMPRESSION_IPHC,
+	.compression = PANC_COMPRESSION_NONE,
 	.security = PANC_SECURITY_NONE,
 };
 PANCHANDLE my_pancake_handle;
@@ -92,7 +92,7 @@ int main(int argc, char **argv)
 		return EXIT_FAILURE;
 	}
 
-#if 1
+#if 0
 	my_test_function();
 #else
 	ret = pancake_reassembly_test(my_pancake_handle);

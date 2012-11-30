@@ -257,16 +257,60 @@ PANCSTATUS pancake_reassembly_test(PANCHANDLE handle)
 		},
 		.addr_mode = PANCAKE_IEEE_ADDR_MODE_EXTENDED,
 	};
+#if PANC_USE_COLOR !=0
+	struct color_change colors[] = {
+		{
+			.color = PANC_COLOR_RED,
+			.position = 4,
+			.description = "Frag hdr",
+		},
+		{
+			.color = PANC_COLOR_YELLOW,
+			.position = 5,
+			.description = "IPv6 Dispatch byte",
+		},
+		{
+			.color = PANC_COLOR_GREEN,
+			.position = 40+5,
+			.description = "IPv6 header",
+		},
+		{
+			.color = PANC_COLOR_BLUE,
+			.position = 101,
+			.description = "Payload",
+		},
+	};
+#endif
 
 	pancake_printf("pancake_reassembly_test(): Initiating reassembly test\n");
 
+	/* Print 1st packet */
 	populate_fragmented_packets();
 	pancake_printf("Packet #1:\n");
+#if PANC_USE_COLOR
+	pancake_pretty_print(NULL, fragmented_packet[0], 101, colors, sizeof(colors)/sizeof(struct color_change));
+#else
 	pancake_print_raw_bits(NULL, fragmented_packet[0], 101);
+#endif
+
+	/* Print 2nd packet */
 	pancake_printf("Packet #2:\n");
+#if PANC_USE_COLOR
+	colors[0].position = 5;
+	colors[1].position = 5;
+	colors[2].position = 5;
+	pancake_pretty_print(NULL, fragmented_packet[1], 101, colors, sizeof(colors)/sizeof(struct color_change));
+#else
 	pancake_print_raw_bits(NULL, fragmented_packet[1], 101);
+#endif
+
+	/* Print 3rd packet */
 	pancake_printf("Packet #3:\n");
+#if PANC_USE_COLOR
+	pancake_pretty_print(NULL, fragmented_packet[2], 53, colors, sizeof(colors)/sizeof(struct color_change));
+#else
 	pancake_print_raw_bits(NULL, fragmented_packet[2], 53);
+#endif
 
 	/* Memory test */
 	for (i = 0; i < PANC_MAX_CONCURRENT_REASSEMBLIES; i++) {
@@ -317,8 +361,18 @@ PANCSTATUS pancake_reassembly_test(PANCHANDLE handle)
 			goto err_out;
 		}
 	}
+
+	/* Print reassembled packet */
 	pancake_printf("Reassembled packet:\n");
+#if PANC_USE_COLOR
+	colors[0].position = 0;
+	colors[1].position = 1;
+	colors[2].position = 41;
+	colors[3].position = buf->octets_received;
+	pancake_pretty_print(NULL, buf->data, buf->octets_received, colors, sizeof(colors)/sizeof(struct color_change));
+#else
 	pancake_print_raw_bits(NULL, buf->data, buf->octets_received);
+#endif
 
 	pancake_printf("pancake_reassembly_test(): Reassembly test successful\n");
 	return PANCSTATUS_OK;
