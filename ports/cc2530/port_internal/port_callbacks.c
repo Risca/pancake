@@ -33,9 +33,6 @@ uint16 port_process_mac_event(uint8 taskId, uint16 events)
   uint8* pMsg;
   macCbackEvent_t* pData;
 
-  static uint8 index;
-  static uint8 sequence;
-
   if (events & SYS_EVENT_MSG)
   {
     while ((pMsg = osal_msg_receive(port_process_mac_event_task_id)) != NULL)

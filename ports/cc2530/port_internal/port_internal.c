@@ -220,7 +220,8 @@ void port_send_data_request(uint8* data, uint8 dataLength, bool directMsg, uint1
   macMcpsDataReq_t  *pData;
   static uint8      handle = 0;
 
-  if ((pData = MAC_McpsDataAlloc(dataLength, securityLevel, keyIdMode)) != NULL)
+  pData = MAC_McpsDataAlloc(dataLength, securityLevel, keyIdMode);
+  if (NULL != pData)
   {
     pData->mac.srcAddrMode = SADDR_MODE_SHORT;
     pData->mac.dstAddr.addrMode = SADDR_MODE_SHORT;
@@ -230,10 +231,13 @@ void port_send_data_request(uint8* data, uint8 dataLength, bool directMsg, uint1
     pData->mac.txOptions = MAC_TXOPTION_ACK;
 
     /* Copy data */
-    osal_memcpy (pData->msdu.p, data, dataLength);
+    osal_memcpy(pData->msdu.p, data, dataLength);
 
     /* Send out data request */
     MAC_McpsDataReq(pData);
+  }
+  else {
+	halAssertHandler();
   }
 
 }

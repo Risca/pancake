@@ -267,11 +267,11 @@ PANCSTATUS pancake_decompress_header(struct pancake_compressed_ip6_hdr *compress
         case (0x1 << 3):
 			
 			// Set version back
-			flow = (6 << 28); // Version
-			flow |= ((*inline_data & (0x3 << 6)) << 20); // ECN 2 bits
+			flow = ((uint32_t)6 << 28); // Version
+			flow |= ((*inline_data & ((uint32_t)0x3 << 6)) << 20); // ECN 2 bits
 			
 			// Flow ID
-			flow |= (*inline_data & (0xf)) << 16;
+			flow |= (*inline_data & ((uint32_t)0xf)) << 16;
 			flow |= *(inline_data + 1) << 8;
 			flow |= *(inline_data + 2);
 			hdr->ip6_flow = ntohl(flow);

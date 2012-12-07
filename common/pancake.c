@@ -346,11 +346,9 @@ PANCSTATUS pancake_process_data(void *dev_data, struct pancake_ieee_addr *src, s
 					goto out;
 				}
 				
-				*data = 0x41;
+				*data = DISPATCH_IPv6; // TODO: Remove this quick-fix. Only works without compression.
 				memcpy(data+1, ra_buf->data, (ra_buf->frag_hdr.size & 0x7FF));
 				ret = PANCSTATUS_NOTREADY;
-				//payload = ra_buf->data + 40;
-				//payload_length = (ra_buf->frag_hdr.size & 0x7FF) - 40;
 				break;
 			default:
 				if ((*data & 0xC0) == DISPATCH_MESH) {
@@ -374,7 +372,6 @@ PANCSTATUS pancake_process_data(void *dev_data, struct pancake_ieee_addr *src, s
 	event.data_received.payload_length = payload_length;
 	
 	/* Relay data to upper levels */
-	ret = PANCSTATUS_OK;
 	dev->event_callback(&event);
 
 out:

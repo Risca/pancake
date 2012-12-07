@@ -27,13 +27,12 @@
 //_____ V A R I A B L E   D E C L A R A T I O N S______________________________
 extern struct pancake_port_cfg cc2530_cfg;
 struct pancake_options_cfg my_options = {
-	.compression = PANC_COMPRESSION_NONE,
+	.compression = PANC_COMPRESSION_IPHC,
 	.security = PANC_SECURITY_NONE,
 };
 PANCHANDLE my_pancake_handle;
 
 // Application specific variables
-static uint8_t bogus_packet[200];
 static uint8_t is_coordinator = FALSE;
 static uint8_t is_device = FALSE;
 
@@ -52,7 +51,7 @@ static void populate_dummy_ipv6_header(struct ip6_hdr *hdr, uint16_t payload_len
 			0, 0, 0, 0, 0, 0, 0, 0,
 			0, 0, 0, 0, 0, 0, 0, 1};
 
-	hdr->ip6_flow	=	htonl(6 << 28);
+	hdr->ip6_flow	=	htonl((uint32_t)6 << 28);
 	hdr->ip6_plen	=	htons(payload_length);
 	hdr->ip6_nxt	=	254;
 	hdr->ip6_hops	=	2;
@@ -74,7 +73,7 @@ static void my_event_callback(pancake_event *event)
 			    is_device ) {
 				    
 				uint8_t hello_world[] = "Hello, World!";
-				payload_length =  130; //sizeof(hello_world);
+				payload_length = sizeof(hello_world); // 130; 
 				
 				memcpy(payload, hello_world, sizeof(hello_world));
 				populate_dummy_ipv6_header(hdr, payload_length);
@@ -111,6 +110,7 @@ int main(int argc, int **argv)
 	}
 	
 	for(;;);
+	
 	
 #if 0
 	ret = pancake_write_test(my_pancake_handle);

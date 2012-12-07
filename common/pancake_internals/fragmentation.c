@@ -14,11 +14,11 @@ static PANCSTATUS populate_fragmentation_header(struct pancake_frag_hdr *frag_hd
 	/* Set size and dispatch value */
 	if (offset == 0) {
 		/* First packet */
-		frag_hdr->size = htons(dgram_len | (0x18 << 11));
+		frag_hdr->size = htons(dgram_len | ((uint16_t)0x18 << 11));
 	}
 	else {
 		/* Subsequent packets */
-		frag_hdr->size = htons(dgram_len | (0x1C << 11));
+		frag_hdr->size = htons(dgram_len | ((uint16_t)0x1C << 11));
 	}
 
 	/* Fill in datagram tag */
