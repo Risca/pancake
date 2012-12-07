@@ -44,7 +44,10 @@ void port_send_data_request(uint8* data, uint8 dataLength, bool directMsg, uint1
 
 //##### MAC receive functions #################################################
 void port_beacon_received( macCbackEvent_t* pData );
-void port_associate_response_received(void);
+void port_associate_response_received( macCbackEvent_t* pData );
 void port_data_received( macCbackEvent_t* pData );
+
+//##### MAC status notification functions #################################################
+void port_data_sent( macCbackEvent_t* pData );
 
 #endif

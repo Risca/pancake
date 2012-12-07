@@ -277,6 +277,8 @@ PANCSTATUS pancake_send(PANCHANDLE handle, struct ip6_hdr *hdr, uint8_t *payload
 		pancake_pretty_print(dev->dev_data, raw_data, length, color_positions, 3);
 #endif
 		
+		
+		
 		ret = dev->cfg->write_func(dev->dev_data, NULL, raw_data, length);
 		if (ret != PANCSTATUS_OK) {
 			goto err_out;
@@ -330,7 +332,15 @@ PANCSTATUS pancake_process_data(void *dev_data, struct pancake_ieee_addr *src, s
 		case DISPATCH_IPv6:
 			hdr = (struct ip6_hdr *)(data + 1);
 			payload = data + 1 + 40;
-			payload_length = size - (1 + 40);
+			
+			/* If NOT fragmented, set length as size - header - dispatch */
+			if ( NULL == ra_buf ) {
+				payload_length = size - (1 + 40); 
+			}
+			/* If fragmented, get length from reassembly, subtract dispatch */
+			else {
+				payload_length = ra_buf->octets_received - (1 + 40);
+			}
 			ret = PANCSTATUS_OK;
 			break;
 		case DISPATCH_HC1:
@@ -340,14 +350,13 @@ PANCSTATUS pancake_process_data(void *dev_data, struct pancake_ieee_addr *src, s
 		default:
 			switch (*data & 0xF8) { // 0b11111000
 			case DISPATCH_FRAG1:
-			case DISPATCH_FRAGN:
+			case DISPATCH_FRAGN:				
 				ret = pancake_reassemble(dev, &ra_buf, src, dst, data, size);
 				if (ret != PANCSTATUS_OK) {
 					goto out;
 				}
 				
-				*data = DISPATCH_IPv6; // TODO: Remove this quick-fix. Only works without compression.
-				memcpy(data+1, ra_buf->data, (ra_buf->frag_hdr.size & 0x7FF));
+				data = ra_buf->data;
 				ret = PANCSTATUS_NOTREADY;
 				break;
 			default:

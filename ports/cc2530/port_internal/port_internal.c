@@ -16,6 +16,7 @@
 #include "mac_api.h"
 // For random numbers
 #include "mac_radio_defs.h"
+#include "mac_main.h"
 
 /* OSAL */
 #include "OSAL.h"
@@ -196,7 +197,7 @@ void port_send_associate_response( macCbackEvent_t* pData )
 	
 	/* If the number of devices are more than MAX_DEVICE_NUM, turn off the association permit */
 	if (NumOfDevices == PORT_MAX_DEVICE_NUM)
-		MAC_MlmeSetReq(MAC_ASSOCIATION_PERMIT, &MACFalse);
+		MAC_MlmeSetReq(MAC_ASSOCIATION_PERMIT, &MACFalse);	
 	
 	/* Fill in association respond message */
 	sAddrExtCpy(AssociateRsp.deviceAddress, pData->associateInd.deviceAddress);
@@ -269,16 +270,20 @@ void port_beacon_received( macCbackEvent_t* pData )
 	//	HalLedSet( HAL_LED_2, HAL_LED_MODE_ON );
 }
 
-void port_associate_response_received(void)
+void port_associate_response_received( macCbackEvent_t* pData )
 {
-  	// Device now online
-	is_online = TRUE;
-	
-	connection_update.status = PANC_CONNECTED;
-	connection_update.is_device = TRUE;
-	connection_update.is_coordinator = FALSE;
-	
-	PANCSTATUS ret = pancake_connection_update( NULL, &connection_update );
+  	if( MAC_SUCCESS == pData->associateCnf.hdr.status ) {
+		// Device now online
+		is_online = TRUE;
+		
+		MAC_MlmeSetReq(MAC_SHORT_ADDRESS, &pData->associateCnf.assocShortAddress);
+		
+		connection_update.status = PANC_CONNECTED;
+		connection_update.is_device = TRUE;
+		connection_update.is_coordinator = FALSE;
+		
+		PANCSTATUS ret = pancake_connection_update( NULL, &connection_update );
+	}
 }
 
 void port_data_received( macCbackEvent_t* pData )
@@ -293,7 +298,13 @@ void port_data_received( macCbackEvent_t* pData )
 	src.addr_mode = PANCAKE_IEEE_ADDR_MODE_SHORT;
 
 	PANCSTATUS ret = pancake_process_data( NULL, &src, &dst, pData->dataInd.msdu.p, pData->dataInd.msdu.len );
-	if(PANCSTATUS_ERR == ret) {
+	if(PANCSTATUS_ERR == ret ||
+	   PANCSTATUS_NOMEM == ret ) {
 		halAssertHandler();
 	}
+}
+
+void port_data_sent( macCbackEvent_t* pData )
+{
+  mac_msg_deallocate((uint8**)&pData->dataCnf.pDataReq);
 }

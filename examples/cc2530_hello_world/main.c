@@ -23,11 +23,13 @@
 #include <string.h>
 
 
+#define LONG_PACKAGE 1
+
 
 //_____ V A R I A B L E   D E C L A R A T I O N S______________________________
 extern struct pancake_port_cfg cc2530_cfg;
 struct pancake_options_cfg my_options = {
-	.compression = PANC_COMPRESSION_IPHC,
+	.compression = PANC_COMPRESSION_NONE,
 	.security = PANC_SECURITY_NONE,
 };
 PANCHANDLE my_pancake_handle;
@@ -73,7 +75,12 @@ static void my_event_callback(pancake_event *event)
 			    is_device ) {
 				    
 				uint8_t hello_world[] = "Hello, World!";
-				payload_length = sizeof(hello_world); // 130; 
+				
+#if LONG_PACKAGE == 1
+				payload_length = 130;
+#else
+				payload_length = sizeof(hello_world);
+#endif
 				
 				memcpy(payload, hello_world, sizeof(hello_world));
 				populate_dummy_ipv6_header(hdr, payload_length);
@@ -83,7 +90,7 @@ static void my_event_callback(pancake_event *event)
 			break;
 		}
 		case PANC_EVENT_DATA_RECEIVED: {
-			if( is_coordinator ) {
+			//if( is_coordinator ) {
 		  		// When we get a message, send response
 			  
 			  	hdr = event->data_received.hdr;
@@ -91,7 +98,7 @@ static void my_event_callback(pancake_event *event)
 			  	payload_length = event->data_received.payload_length;
 		  
 				PANCSTATUS ret = pancake_send(my_pancake_handle, hdr, payload, payload_length);  
-			}
+			//}
 			break;
 		}
 	}

@@ -48,7 +48,7 @@ uint16 port_process_mac_event(uint8 taskId, uint16 events)
 
 		/* We are now associated to a cordinator. */
         case MAC_MLME_ASSOCIATE_CNF:
-		  port_associate_response_received();
+		  port_associate_response_received( pData );
           break;
 
 		/* Received on various occations - Probably no need to implement. */
@@ -75,7 +75,7 @@ uint16 port_process_mac_event(uint8 taskId, uint16 events)
           /* Check if there is any Coordinator out there */
           pData = (macCbackEvent_t *) pMsg;
 
-          /* If there is no other on the channel or no other with sampleBeacon */
+          /* If there is no other on the channel */
           if ((pData->scanCnf.resultListSize == 0) && (pData->scanCnf.hdr.status == MAC_NO_BEACON)) {
             // Start coordinator
 			port_init_coordinator();
@@ -91,7 +91,7 @@ uint16 port_process_mac_event(uint8 taskId, uint16 events)
 
 		/* Status of last transmission */
         case MAC_MCPS_DATA_CNF:
-          // TO BE IMPLEMENTED
+		  port_data_sent( pData );
           break;
 
 		/* Data received from the MAC */

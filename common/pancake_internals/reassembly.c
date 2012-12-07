@@ -236,7 +236,7 @@ static PANCSTATUS pancake_reassemble(struct pancake_main_dev *dev, struct pancak
 	/* Buffer fully populated, return it and mark it free */
 	buf->free = 1;
 	*ra_buf = buf;
-
+	
 	return PANCSTATUS_OK;
 err_out:
 	return PANCSTATUS_ERR;
