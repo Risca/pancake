@@ -6,11 +6,11 @@
 
 
 
-#define PORT_PAN_ID             	0x11CC        /* PAN ID */
+#define PORT_PAN_ID             	0x5449        /* PAN ID, old 0x11CC */
 #define PORT_COORD_SHORT_ADDR		0xAABB        /* Coordinator short address */
 #define PORT_DEV_SHORT_ADDR			0x0000
 #define PORT_MAX_DEVICE_NUM			32
-#define PORT_MAC_CHANNEL 			MAC_CHAN_11 
+#define PORT_MAC_CHANNEL 			MAC_CHAN_25   /* Changed from 11 to 2 */   
 #define PORT_MAC_BEACON_ORDER      	15            /* Setting beacon order to 15 will disable the beacon */
 #define PORT_MAC_SUPERFRAME_ORDER  	15            /* Setting superframe order to 15 will disable the superframe */
 #define PORT_MAC_MAX_RESULTS       	5

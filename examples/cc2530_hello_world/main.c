@@ -23,13 +23,13 @@
 #include <string.h>
 
 
-#define LONG_PACKAGE 1
+#define LONG_PACKAGE 0
 
 
 //_____ V A R I A B L E   D E C L A R A T I O N S______________________________
 extern struct pancake_port_cfg cc2530_cfg;
 struct pancake_options_cfg my_options = {
-	.compression = PANC_COMPRESSION_NONE,
+	.compression = PANC_COMPRESSION_IPHC,
 	.security = PANC_SECURITY_NONE,
 };
 PANCHANDLE my_pancake_handle;
@@ -48,17 +48,32 @@ static uint8_t			*payload	= data + 40;
 //_____ F U N C T I O N   D E F I N I T I O N S________________________________
 static void populate_dummy_ipv6_header(struct ip6_hdr *hdr, uint16_t payload_length)
 {
-	/* Loopback (::1/128) */
-	struct in6_addr addr = {
-			0, 0, 0, 0, 0, 0, 0, 0,
-			0, 0, 0, 0, 0, 0, 0, 1};
+	struct pancake_radio_id radio_id = {
+#if 1
+		.r_pan_addr = {0xFF, 0xFF},
+		.r_short_addr = {0, 1},
+	#if 1
+			.type = PANC_RADIO_ID_SHORT_ADDR_ONLY,
+	#else
+			.type = PANC_RADIO_ID_PAN_AND_SHORT_ADDR,
+	#endif
+#else
+		.type = PANC_RADIO_ID_EUI64,
+		.r_EUI64 = {0, 2, 4, 8, 16, 32, 64, 128},
+#endif
+	};
+	struct in6_addr addr;
 
-	hdr->ip6_flow	=	htonl((uint32_t)6 << 28);
+	/* Populate in6 address */
+	pancake_get_in6_address(LINK_LOCAL_PREFIX, &radio_id, &addr);
+
+	// Version + Traffic Control [ECN(2) + DSCP(6)] + Flow id 26
+	hdr->ip6_flow	=	htonl(((uint32_t)6 << 28) | ((uint32_t)0x1 << 26) | (26 << 0));
 	hdr->ip6_plen	=	htons(payload_length);
 	hdr->ip6_nxt	=	254;
-	hdr->ip6_hops	=	2;
+	hdr->ip6_hops	=	1;
 
-    // Add next bytes
+	// Add source and destination address
 	memcpy((uint8_t *)hdr + 8, &addr, 16);
 	memcpy((uint8_t *)hdr + 24, &addr, 16);
 }

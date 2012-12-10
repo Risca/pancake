@@ -2,55 +2,46 @@
 
 <Workspace>
   <ConfigDictionary>
-    <CurrentConfigs>
-      <Project>msa_cc2530/Normal</Project>
-    </CurrentConfigs>
-  </ConfigDictionary>
+    
+  <CurrentConfigs><Project>msa_cc2530/Normal</Project></CurrentConfigs></ConfigDictionary>
   <Desktop>
     <Static>
       <Workspace>
         <ColumnWidths>
-          <Column0>218</Column0>
-          <Column1>27</Column1>
-          <Column2>27</Column2>
-          <Column3>27</Column3>
-        </ColumnWidths>
+          
+          
+          
+          
+        <Column0>218</Column0><Column1>27</Column1><Column2>27</Column2><Column3>27</Column3></ColumnWidths>
       </Workspace>
       <Build>
-        <ColumnWidth0>20</ColumnWidth0>
-        <ColumnWidth1>915</ColumnWidth1>
-        <ColumnWidth2>244</ColumnWidth2>
-        <ColumnWidth3>61</ColumnWidth3>
-      </Build>
+        
+        
+        
+        
+      <ColumnWidth0>20</ColumnWidth0><ColumnWidth1>915</ColumnWidth1><ColumnWidth2>244</ColumnWidth2><ColumnWidth3>61</ColumnWidth3></Build>
       <TerminalIO/>
       <Debug-Log>
-        <ColumnWidth0>20</ColumnWidth0>
-        <ColumnWidth1>1221</ColumnWidth1>
-      </Debug-Log>
+        
+        
+      <ColumnWidth0>20</ColumnWidth0><ColumnWidth1>1221</ColumnWidth1></Debug-Log>
     </Static>
     <Windows>
-      <Wnd0>
+      
+      
+    <Wnd0>
         <Tabs>
           <Tab>
             <Identity>TabID-7149-1125</Identity>
             <TabName>Workspace</TabName>
             <Factory>Workspace</Factory>
             <Session>
-              <NodeDict>
-                <ExpandedNode>msa_cc2530</ExpandedNode>
-                <ExpandedNode>msa_cc2530/Pancake</ExpandedNode>
-                <ExpandedNode>msa_cc2530/Pancake/Common</ExpandedNode>
-                <ExpandedNode>msa_cc2530/Pancake/Include</ExpandedNode>
-                <ExpandedNode>msa_cc2530/Port</ExpandedNode>
-                <ExpandedNode>msa_cc2530/Port/Port_internal</ExpandedNode>
-                <ExpandedNode>msa_cc2530/Sample</ExpandedNode>
-              </NodeDict>
-            </Session>
+              
+            <NodeDict><ExpandedNode>msa_cc2530</ExpandedNode><ExpandedNode>msa_cc2530/Examples</ExpandedNode><ExpandedNode>msa_cc2530/Examples/CC2530_Hello_World</ExpandedNode><ExpandedNode>msa_cc2530/Pancake</ExpandedNode><ExpandedNode>msa_cc2530/Pancake/Common</ExpandedNode><ExpandedNode>msa_cc2530/Pancake/Common/pancake_internal</ExpandedNode><ExpandedNode>msa_cc2530/Pancake/Include</ExpandedNode><ExpandedNode>msa_cc2530/Port</ExpandedNode><ExpandedNode>msa_cc2530/Port/Include</ExpandedNode><ExpandedNode>msa_cc2530/Port/Port_internal</ExpandedNode><ExpandedNode>msa_cc2530/Sample</ExpandedNode></NodeDict></Session>
           </Tab>
         </Tabs>
-        <SelectedTab>0</SelectedTab>
-      </Wnd0>
-      <Wnd1>
+        
+      <SelectedTab>0</SelectedTab></Wnd0><Wnd1>
         <Tabs>
           <Tab>
             <Identity>TabID-15806-1168</Identity>
@@ -65,235 +56,21 @@
             <Session/>
           </Tab>
         </Tabs>
-        <SelectedTab>0</SelectedTab>
-      </Wnd1>
-    </Windows>
+        
+      <SelectedTab>0</SelectedTab></Wnd1></Windows>
     <Editor>
-      <Pane>
-        <Tab>
-          <Factory>TextEditor</Factory>
-          <Filename>$WS_DIR$\..\..\..\..\..\..\port_internal\osal_setup.c</Filename>
-          <XPos>0</XPos>
-          <YPos>67</YPos>
-          <SelStart>1435</SelStart>
-          <SelEnd>1435</SelEnd>
-        </Tab>
-        <Tab>
-          <Factory>TextEditor</Factory>
-          <Filename>$WS_DIR$\..\..\..\..\..\..\port_internal\port_callbacks.c</Filename>
-          <XPos>0</XPos>
-          <YPos>73</YPos>
-          <SelStart>2643</SelStart>
-          <SelEnd>2643</SelEnd>
-        </Tab>
-        <Tab>
-          <Factory>TextEditor</Factory>
-          <Filename>$WS_DIR$\..\..\..\..\..\..\port_internal\port_internal.c</Filename>
-          <XPos>0</XPos>
-          <YPos>88</YPos>
-          <SelStart>9205</SelStart>
-          <SelEnd>9205</SelEnd>
-        </Tab>
-        <Tab>
-          <Factory>TextEditor</Factory>
-          <Filename>$WS_DIR$\..\..\Application\msa.c</Filename>
-          <XPos>0</XPos>
-          <YPos>608</YPos>
-          <SelStart>24028</SelStart>
-          <SelEnd>24046</SelEnd>
-        </Tab>
-        <Tab>
-          <Factory>TextEditor</Factory>
-          <Filename>$WS_DIR$\..\..\..\..\..\..\include\port_internal.h</Filename>
-          <XPos>0</XPos>
-          <YPos>24</YPos>
-          <SelStart>1954</SelStart>
-          <SelEnd>1954</SelEnd>
-        </Tab>
-        <Tab>
-          <Factory>TextEditor</Factory>
-          <Filename>$WS_DIR$\..\..\..\..\..\..\..\..\include\pancake.h</Filename>
-          <XPos>0</XPos>
-          <YPos>87</YPos>
-          <SelStart>2350</SelStart>
-          <SelEnd>2367</SelEnd>
-        </Tab>
-        <Tab>
-          <Factory>TextEditor</Factory>
-          <Filename>$WS_DIR$\..\..\..\..\..\..\..\..\examples\cc2530_hello_world\main.c</Filename>
-          <XPos>0</XPos>
-          <YPos>86</YPos>
-          <SelStart>2336</SelStart>
-          <SelEnd>2336</SelEnd>
-        </Tab>
-        <ActiveTab>6</ActiveTab>
-        <Tab>
-          <Factory>TextEditor</Factory>
-          <Filename>$WS_DIR$\..\..\..\..\..\..\..\..\common\pancake_internals\reassembly.c</Filename>
-          <XPos>0</XPos>
-          <YPos>323</YPos>
-          <SelStart>4466</SelStart>
-          <SelEnd>4466</SelEnd>
-        </Tab>
-        <Tab>
-          <Factory>TextEditor</Factory>
-          <Filename>$WS_DIR$\..\..\..\..\..\..\..\..\common\pancake.c</Filename>
-          <XPos>0</XPos>
-          <YPos>259</YPos>
-          <SelStart>7378</SelStart>
-          <SelEnd>7378</SelEnd>
-        </Tab>
-        <Tab>
-          <Factory>TextEditor</Factory>
-          <Filename>$WS_DIR$\..\..\..\..\..\..\..\..\include\config.h</Filename>
-          <XPos>0</XPos>
-          <YPos>0</YPos>
-          <SelStart>241</SelStart>
-          <SelEnd>241</SelEnd>
-        </Tab>
-        <Tab>
-          <Factory>TextEditor</Factory>
-          <Filename>$WS_DIR$\..\..\Application\msa_Main.c</Filename>
-          <XPos>0</XPos>
-          <YPos>8</YPos>
-          <SelStart>1319</SelStart>
-          <SelEnd>1319</SelEnd>
-        </Tab>
-        <Tab>
-          <Factory>TextEditor</Factory>
-          <Filename>$WS_DIR$\..\..\..\..\..\..\port_internal\mac_callbacks.c</Filename>
-          <XPos>0</XPos>
-          <YPos>66</YPos>
-          <SelStart>0</SelStart>
-          <SelEnd>0</SelEnd>
-        </Tab>
-        <Tab>
-          <Factory>TextEditor</Factory>
-          <Filename>$WS_DIR$\..\..\..\..\..\..\..\..\include\in6_addr.h</Filename>
-          <XPos>0</XPos>
-          <YPos>0</YPos>
-          <SelStart>0</SelStart>
-          <SelEnd>0</SelEnd>
-        </Tab>
-        <Tab>
-          <Factory>TextEditor</Factory>
-          <Filename>$WS_DIR$\..\..\..\..\..\..\..\..\include\limited\netinet\ip6.h</Filename>
-          <XPos>0</XPos>
-          <YPos>0</YPos>
-          <SelStart>0</SelStart>
-          <SelEnd>0</SelEnd>
-        </Tab>
-        <Tab>
-          <Factory>TextEditor</Factory>
-          <Filename>$WS_DIR$\..\..\..\..\..\..\..\..\include\limited\netinet\in.h</Filename>
-          <XPos>0</XPos>
-          <YPos>0</YPos>
-          <SelStart>0</SelStart>
-          <SelEnd>0</SelEnd>
-        </Tab>
-        <Tab>
-          <Factory>TextEditor</Factory>
-          <Filename>$WS_DIR$\..\..\..\..\..\..\..\..\include\port.h</Filename>
-          <XPos>0</XPos>
-          <YPos>0</YPos>
-          <SelStart>267</SelStart>
-          <SelEnd>267</SelEnd>
-        </Tab>
-        <Tab>
-          <Factory>TextEditor</Factory>
-          <Filename>$WS_DIR$\..\..\..\..\..\..\port.c</Filename>
-          <XPos>0</XPos>
-          <YPos>67</YPos>
-          <SelStart>2357</SelStart>
-          <SelEnd>2357</SelEnd>
-        </Tab>
-        <Tab>
-          <Factory>TextEditor</Factory>
-          <Filename>$WS_DIR$\..\..\..\..\..\..\..\..\common\pancake_internals\fragmentation.c</Filename>
-          <XPos>0</XPos>
-          <YPos>53</YPos>
-          <SelStart>2164</SelStart>
-          <SelEnd>2164</SelEnd>
-        </Tab>
-      </Pane>
-      <ActivePane>0</ActivePane>
-      <Sizes>
-        <Pane>
-          <X>1000000</X>
-          <Y>1000000</Y>
-        </Pane>
-      </Sizes>
-      <SplitMode>1</SplitMode>
-    </Editor>
+      
+      
+      
+      
+    <Pane><Tab><Factory>TextEditor</Factory><Filename>$WS_DIR$\..\..\..\..\..\..\port_internal\osal_setup.c</Filename><XPos>0</XPos><YPos>67</YPos><SelStart>1435</SelStart><SelEnd>1435</SelEnd></Tab><Tab><Factory>TextEditor</Factory><Filename>$WS_DIR$\..\..\Application\msa.c</Filename><XPos>0</XPos><YPos>608</YPos><SelStart>24028</SelStart><SelEnd>24046</SelEnd></Tab><Tab><Factory>TextEditor</Factory><Filename>$WS_DIR$\..\..\..\..\..\..\..\..\common\pancake_internals\reassembly.c</Filename><XPos>0</XPos><YPos>323</YPos><SelStart>4466</SelStart><SelEnd>4466</SelEnd></Tab><Tab><Factory>TextEditor</Factory><Filename>$WS_DIR$\..\..\..\..\..\..\include\port_internal.h</Filename><XPos>0</XPos><YPos>0</YPos><SelStart>349</SelStart><SelEnd>349</SelEnd></Tab><Tab><Factory>TextEditor</Factory><Filename>$WS_DIR$\..\..\..\..\..\..\..\..\include\config.h</Filename><XPos>0</XPos><YPos>0</YPos><SelStart>241</SelStart><SelEnd>241</SelEnd></Tab><Tab><Factory>TextEditor</Factory><Filename>$WS_DIR$\..\..\Application\msa_Main.c</Filename><XPos>0</XPos><YPos>8</YPos><SelStart>1319</SelStart><SelEnd>1319</SelEnd></Tab><Tab><Factory>TextEditor</Factory><Filename>$WS_DIR$\..\..\..\..\..\..\port_internal\mac_callbacks.c</Filename><XPos>0</XPos><YPos>66</YPos><SelStart>0</SelStart><SelEnd>0</SelEnd></Tab><Tab><Factory>TextEditor</Factory><Filename>$WS_DIR$\..\..\..\..\..\..\..\..\include\in6_addr.h</Filename><XPos>0</XPos><YPos>0</YPos><SelStart>0</SelStart><SelEnd>0</SelEnd></Tab><Tab><Factory>TextEditor</Factory><Filename>$WS_DIR$\..\..\..\..\..\..\..\..\include\limited\netinet\ip6.h</Filename><XPos>0</XPos><YPos>0</YPos><SelStart>0</SelStart><SelEnd>0</SelEnd></Tab><Tab><Factory>TextEditor</Factory><Filename>$WS_DIR$\..\..\..\..\..\..\..\..\include\port.h</Filename><XPos>0</XPos><YPos>0</YPos><SelStart>267</SelStart><SelEnd>267</SelEnd></Tab><Tab><Factory>TextEditor</Factory><Filename>$WS_DIR$\..\..\..\..\..\..\port.c</Filename><XPos>0</XPos><YPos>51</YPos><SelStart>836</SelStart><SelEnd>836</SelEnd></Tab><Tab><Factory>TextEditor</Factory><Filename>$WS_DIR$\..\..\..\..\..\..\..\..\common\pancake_internals\fragmentation.c</Filename><XPos>0</XPos><YPos>53</YPos><SelStart>2164</SelStart><SelEnd>2164</SelEnd></Tab><Tab><Factory>TextEditor</Factory><Filename>$WS_DIR$\..\..\..\..\..\Components\mac\include\mac_api.h</Filename><XPos>0</XPos><YPos>188</YPos><SelStart>13000</SelStart><SelEnd>13000</SelEnd></Tab><Tab><Factory>TextEditor</Factory><Filename>$WS_DIR$\..\..\..\..\..\..\..\..\examples\cc2530_hello_world\main.c</Filename><XPos>0</XPos><YPos>101</YPos><SelStart>3076</SelStart><SelEnd>3076</SelEnd></Tab><Tab><Factory>TextEditor</Factory><Filename>$WS_DIR$\..\..\..\..\..\..\port_internal\port_internal.c</Filename><XPos>0</XPos><YPos>242</YPos><SelStart>7005</SelStart><SelEnd>7005</SelEnd></Tab><Tab><Factory>TextEditor</Factory><Filename>$WS_DIR$\..\..\..\..\..\..\..\..\include\pancake.h</Filename><XPos>0</XPos><YPos>0</YPos><SelStart>1861</SelStart><SelEnd>1861</SelEnd></Tab><Tab><Factory>TextEditor</Factory><Filename>$WS_DIR$\..\..\..\..\..\..\port_internal\port_callbacks.c</Filename><XPos>0</XPos><YPos>73</YPos><SelStart>2643</SelStart><SelEnd>2643</SelEnd></Tab><Tab><Factory>TextEditor</Factory><Filename>$WS_DIR$\..\..\..\..\..\..\..\..\common\pancake.c</Filename><XPos>0</XPos><YPos>347</YPos><SelStart>9410</SelStart><SelEnd>9410</SelEnd></Tab><ActiveTab>17</ActiveTab><Tab><Factory>TextEditor</Factory><Filename>$WS_DIR$\..\..\..\..\..\..\..\..\common\pancake_internals\header_compression.c</Filename><XPos>0</XPos><YPos>477</YPos><SelStart>13542</SelStart><SelEnd>13542</SelEnd></Tab><Tab><Factory>TextEditor</Factory><Filename>$WS_DIR$\..\..\..\..\..\..\..\..\include\limited\netinet\in.h</Filename><XPos>0</XPos><YPos>0</YPos><SelStart>257</SelStart><SelEnd>257</SelEnd></Tab></Pane><ActivePane>0</ActivePane><Sizes><Pane><X>1000000</X><Y>1000000</Y></Pane></Sizes><SplitMode>1</SplitMode></Editor>
     <Positions>
-      <Top>
-        <Row0>
-          <Sizes>
-            <Toolbar-01b81700>
-              <key>iaridepm.enu1</key>
-            </Toolbar-01b81700>
-          </Sizes>
-        </Row0>
-        <Row1>
-          <Sizes/>
-        </Row1>
-        <Row2>
-          <Sizes/>
-        </Row2>
-      </Top>
-      <Left>
-        <Row0>
-          <Sizes>
-            <Wnd0>
-              <Rect>
-                <Top>-2</Top>
-                <Left>-2</Left>
-                <Bottom>624</Bottom>
-                <Right>309</Right>
-                <x>-2</x>
-                <y>-2</y>
-                <xscreen>200</xscreen>
-                <yscreen>200</yscreen>
-                <sizeHorzCX>156250</sizeHorzCX>
-                <sizeHorzCY>212314</sizeHorzCY>
-                <sizeVertCX>242969</sizeVertCX>
-                <sizeVertCY>664544</sizeVertCY>
-              </Rect>
-            </Wnd0>
-          </Sizes>
-        </Row0>
-      </Left>
-      <Right>
-        <Row0>
-          <Sizes/>
-        </Row0>
-      </Right>
-      <Bottom>
-        <Row0>
-          <Sizes>
-            <Wnd1>
-              <Rect>
-                <Top>-2</Top>
-                <Left>-2</Left>
-                <Bottom>273</Bottom>
-                <Right>1282</Right>
-                <x>-2</x>
-                <y>-2</y>
-                <xscreen>1284</xscreen>
-                <yscreen>275</yscreen>
-                <sizeHorzCX>1003125</sizeHorzCX>
-                <sizeHorzCY>291932</sizeHorzCY>
-                <sizeVertCX>156250</sizeVertCX>
-                <sizeVertCY>212314</sizeVertCY>
-              </Rect>
-            </Wnd1>
-          </Sizes>
-        </Row0>
-      </Bottom>
-      <Float>
-        <Sizes/>
-      </Float>
-    </Positions>
+      
+      
+      
+      
+      
+    <Top><Row0><Sizes><Toolbar-00e414f8><key>iaridepm.enu1</key></Toolbar-00e414f8></Sizes></Row0><Row1><Sizes/></Row1><Row2><Sizes/></Row2></Top><Left><Row0><Sizes><Wnd0><Rect><Top>-2</Top><Left>-2</Left><Bottom>701</Bottom><Right>309</Right><x>-2</x><y>-2</y><xscreen>200</xscreen><yscreen>200</yscreen><sizeHorzCX>156250</sizeHorzCX><sizeHorzCY>212314</sizeHorzCY><sizeVertCX>242969</sizeVertCX><sizeVertCY>746285</sizeVertCY></Rect></Wnd0></Sizes></Row0></Left><Right><Row0><Sizes/></Row0></Right><Bottom><Row0><Sizes><Wnd1><Rect><Top>-2</Top><Left>-2</Left><Bottom>196</Bottom><Right>1282</Right><x>-2</x><y>-2</y><xscreen>1284</xscreen><yscreen>198</yscreen><sizeHorzCX>1003125</sizeHorzCX><sizeHorzCY>210191</sizeHorzCY><sizeVertCX>156250</sizeVertCX><sizeVertCY>212314</sizeVertCY></Rect></Wnd1></Sizes></Row0></Bottom><Float><Sizes/></Float></Positions>
   </Desktop>
 </Workspace>
 

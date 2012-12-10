@@ -200,13 +200,16 @@ void pancake_destroy(PANCHANDLE handle)
 PANCSTATUS pancake_send(PANCHANDLE handle, struct ip6_hdr *hdr, uint8_t *payload, uint16_t payload_length)
 {
 	uint8_t raw_data[aMaxPHYPacketSize - aMaxFrameOverhead];
+	uint8_t hdr_buff[40];
 	uint16_t length;
 	struct pancake_main_dev *dev;
 	struct pancake_compressed_ip6_hdr compressed_ip6_hdr;
-	compressed_ip6_hdr.hdr_data = raw_data;
+	compressed_ip6_hdr.hdr_data = hdr_buff;
 	uint16_t frame_overhead;
 	PANCSTATUS ret;
-
+	
+	memset( raw_data, 0, aMaxPHYPacketSize - aMaxFrameOverhead );
+	
 #if PANC_USE_COLOR != 0
 	struct color_change color_positions[3];
 #endif
@@ -255,9 +258,9 @@ PANCSTATUS pancake_send(PANCHANDLE handle, struct ip6_hdr *hdr, uint8_t *payload
 	else {
 		/* Dispatch value */
 		*raw_data = compressed_ip6_hdr.dispatch_value;
-		/* Copy header and data */
-		memcpy((void*)(raw_data + 1), (void*)compressed_ip6_hdr.hdr_data, compressed_ip6_hdr.size);
-		memcpy((void*)(raw_data + compressed_ip6_hdr.size + 1), (void*)payload, payload_length);
+		/* Copy hdr and payload */
+		memcpy((uint8_t*)(raw_data + 1), (uint8_t*)compressed_ip6_hdr.hdr_data, compressed_ip6_hdr.size);
+		memcpy((uint8_t*)(raw_data + 1 + compressed_ip6_hdr.size), (uint8_t*)payload, payload_length);
 
 		length = frame_overhead+payload_length;
 
@@ -317,6 +320,7 @@ PANCSTATUS pancake_process_data(void *dev_data, struct pancake_ieee_addr *src, s
 	PANCHANDLE handle;
 	struct pancake_main_dev *dev;
 	struct pancake_reassembly_buffer *ra_buf = NULL;
+	struct pancake_compressed_ip6_hdr compressed_ip6_hdr;
 
 	/* Try to get handle */
 	handle = pancake_handle_from_dev_data(dev_data);
@@ -326,27 +330,54 @@ PANCSTATUS pancake_process_data(void *dev_data, struct pancake_ieee_addr *src, s
 	dev = &devs[handle];
 
 	while( PANCSTATUS_OK != ret ) {
-	
+	  
 		/* Read dispatch value */
 		switch (*data) {
 		case DISPATCH_IPv6:
-			hdr = (struct ip6_hdr *)(data + 1);
-			payload = data + 1 + 40;
-			
-			/* If NOT fragmented, set length as size - header - dispatch */
+		  	/* If NOT fragmented, set length as size - header - dispatch */
 			if ( NULL == ra_buf ) {
 				payload_length = size - (1 + 40); 
 			}
-			/* If fragmented, get length from reassembly, subtract dispatch */
+			/* If fragmented, get length from reassembly - header - dispatch */
 			else {
 				payload_length = ra_buf->octets_received - (1 + 40);
 			}
+		  
+			hdr = (struct ip6_hdr*)(data + 1);
+			payload = data + 1 + 40;
 			ret = PANCSTATUS_OK;
 			break;
 		case DISPATCH_HC1:
 		case DISPATCH_BC0:
 		case DISPATCH_IPHC:
-			return PANCSTATUS_ERR;
+		    
+		  	/* TODO: 	Since we do not know how much the header in compressed we do
+		  				not know the size of it (?). Thus we cannot calculate the
+		   				location, or size, of the payload. payload_length should be
+		  				removed from pancake_decompress_header. */
+
+			// Payload_length from 802.15.4 packet or fragmentation header 
+			compressed_ip6_hdr.hdr_data = (data+1);
+			ret = pancake_decompress_header(&compressed_ip6_hdr, hdr, payload_length);
+			if (PANCSTATUS_OK != ret ) {
+			    goto out;
+			}
+			
+			/* If NOT fragmented, set length as size - header - dispatch */
+			if ( NULL == ra_buf ) {
+				payload_length = size - (1 + compressed_ip6_hdr.size); 
+			}
+			/* If fragmented, get length from reassembly - header - dispatch */
+			else {
+				payload_length = ra_buf->octets_received - (1 + compressed_ip6_hdr.size);
+			}
+			
+			/* This should probably be set here since it will depend on if it was fragmented */
+			hdr->ip6_plen = htons(payload_length);
+			
+			payload = data + 1 + compressed_ip6_hdr.size; //????
+			ret = PANCSTATUS_OK;
+			break;
 		default:
 			switch (*data & 0xF8) { // 0b11111000
 			case DISPATCH_FRAG1:

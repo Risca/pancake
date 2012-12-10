@@ -20,7 +20,7 @@ static uint8_t compress_address(struct in6_addr address, uint8_t *inline_data)
 
     // Check if 64 first bits are LINK_LOCAL_PREFIX
     for(i = 0; i < 8 ; i += 1) {
-		// Check if addresses are equal
+		// Check if addresses are not equal
 		if(LINK_LOCAL_PREFIX[i] != address.s6_addr[i]) {
 			// Must use full address
 
@@ -109,8 +109,8 @@ PANCSTATUS pancake_compress_header(struct ip6_hdr *hdr, struct pancake_compresse
 			*inline_data = (uint8_t) (ntohl(hdr->ip6_flow) >> 16);
 			
 			// Set ECN bits
-			*inline_data |= (traffic_class & (0x3 << 6)) | 0x3f; // Mask and set all bits
-			*inline_data &= (traffic_class & (0x3 << 6)) & 0xc0; // Mask and clear all bits
+			*inline_data |= (traffic_class & ((uint32_t)0x03 << 6)) | 0x3f; // Mask and set all bits
+			*inline_data &= (traffic_class & ((uint32_t)0x03 << 6)) & 0xc0; // Mask and clear all bits
 			
 			
 			// Next byte (flow label)
@@ -491,7 +491,7 @@ PANCSTATUS pancake_decompress_header(struct pancake_compressed_ip6_hdr *compress
 	}
 	
 	// Payload from 802.15.4 packet or fragmentation header 					// TODO, NOT IMPLEMENTED
-	hdr->ip6_plen = htons(payload_length);
+	//hdr->ip6_plen = htons(payload_length);
 																											
 
 	return PANCSTATUS_OK;
