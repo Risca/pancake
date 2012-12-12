@@ -80,7 +80,7 @@ PANCSTATUS pancake_write_test(PANCHANDLE handle);
 
 #if 1
 // Link local prefix
-static const uint8_t LINK_LOCAL_PREFIX[] = {0xfe, 0x80, 0, 0, 0, 0, 0, 0}; // 64 bits
+static const uint8_t LINK_LOCAL_PREFIX[8] = {0xfe, 0x80, 0, 0, 0, 0, 0, 0}; // 64 bits
 #endif
 
 void pancake_destroy(PANCHANDLE handle);
@@ -134,5 +134,6 @@ struct pancake_radio_id {
 };
 
 PANCSTATUS pancake_get_in6_address(const uint8_t *address_prefix, const struct pancake_radio_id *r_id, struct in6_addr *address);
+PANCSTATUS pancake_get_ieee_address_from_ipv6(struct pancake_ieee_addr *ieee_address, struct in6_addr *address);
 #endif
 #endif

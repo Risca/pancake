@@ -1,9 +1,11 @@
+#include<netinet/in.h>
+#include<port.h>
+
 /**
  * Creates an 128 bit ipv6 address
- * @address_prefix A 64 bit address prefix, can be link_local prefix for a local address
- * @interface_identifier The indentifier for this device
- * @identifier_length Length of the identifier in bits, typically 48 or 16 bits
- * @address A pointer to the address that is beeing created
+ * @param A 64 bit address prefix, can be link_local prefix for a local address
+ * @param 
+ * @param A pointer to the address that is beeing created
  */
 PANCSTATUS pancake_get_in6_address(const uint8_t *address_prefix, const struct pancake_radio_id *r_id, struct in6_addr *address)
 {
@@ -56,6 +58,44 @@ PANCSTATUS pancake_get_in6_address(const uint8_t *address_prefix, const struct p
 	*interface_id &= ~(1 << 1);
 
 	return PANCSTATUS_OK;
+err_out:
+	return PANCSTATUS_ERR;
+}
+
+/**
+ * Converts an IPv6 address to ieee address
+ */
+PANCSTATUS pancake_get_ieee_address_from_ipv6(struct pancake_ieee_addr *ieee_address, struct in6_addr *address)
+{
+	uint8_t i;
+	
+	// Check if link local
+	for(i = 0; i < 8; i += 1) {
+		if(LINK_LOCAL_PREFIX[i] != address->s6_addr[i]) {
+			goto err_out;
+		}
+	}
+	
+	//[8]-[9] = 00
+	
+	// Check if 64 bit or 16
+	if((uint32_t) address->s6_addr[10] == 0x00fffe00) {
+		// Short address
+		ieee_address->addr_mode = PANCAKE_IEEE_ADDR_MODE_SHORT;
+		
+		ieee_address->ieee_short = 0;
+		ieee_address->ieee_short = (address->s6_addr[14] << 8) | address->s6_addr[15];
+	} else {
+		// Extended address
+		ieee_address->addr_mode = PANCAKE_IEEE_ADDR_MODE_EXTENDED;
+		
+		for(i = 0; i < 8; i += 1) {
+			ieee_address->ieee_ext[i] = address->s6_addr[8 + i];
+		}
+	}
+	
+	return PANCSTATUS_OK;
+	
 err_out:
 	return PANCSTATUS_ERR;
 }

@@ -2,7 +2,7 @@
 #define _NETINET_IP6_H	1
 
 #include <inttypes.h>
-#include <in.h>
+#include <netinet/in.h>
 
 struct ip6_hdr {
 	union {

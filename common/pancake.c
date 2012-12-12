@@ -207,8 +207,8 @@ PANCSTATUS pancake_send(PANCHANDLE handle, struct ip6_hdr *hdr, uint8_t *payload
 	compressed_ip6_hdr.hdr_data = hdr_buff;
 	uint16_t frame_overhead;
 	PANCSTATUS ret;
-	
 	memset( raw_data, 0, aMaxPHYPacketSize - aMaxFrameOverhead );
+	struct pancake_ieee_addr destination_address;
 	
 #if PANC_USE_COLOR != 0
 	struct color_change color_positions[3];
@@ -279,10 +279,13 @@ PANCSTATUS pancake_send(PANCHANDLE handle, struct ip6_hdr *hdr, uint8_t *payload
 		color_positions[2].description = "Payload";
 		pancake_pretty_print(dev->dev_data, raw_data, length, color_positions, 3);
 #endif
+		// Get address
+		ret = pancake_get_ieee_address_from_ipv6(&destination_address, &hdr->ip6_dst);
+		if(ret != PANCSTATUS_OK) {
+			goto err_out;
+		}
 		
-		
-		
-		ret = dev->cfg->write_func(dev->dev_data, NULL, raw_data, length);
+		ret = dev->cfg->write_func(dev->dev_data, &destination_address, raw_data, length);
 		if (ret != PANCSTATUS_OK) {
 			goto err_out;
 		}
