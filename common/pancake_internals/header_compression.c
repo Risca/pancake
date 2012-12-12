@@ -239,16 +239,26 @@ not_implemented:
 /**
  * Header decompression
  */
-PANCSTATUS pancake_decompress_header(struct pancake_compressed_ip6_hdr *compressed_hdr, struct ip6_hdr *hdr, uint16_t payload_length)
+PANCSTATUS pancake_decompress_header(struct ip6_hdr *hdr, uint8_t * data, uint16_t data_length)
 {
-    // Build header
-    uint8_t *data = compressed_hdr->hdr_data;
-    
     // Where inline data starts
     uint8_t *inline_data = data + 2;	// byte 3
     uint8_t ip_len = 16;
+    uint8_t hdr_length = 2;
     uint32_t flow = 0;
     uint8_t i;
+
+	/* Sanity check */
+	if (hdr == NULL || data == NULL || data_length == 0) {
+		goto err_out;
+	}
+
+	/* Skip dispatch byte if present */
+	if (data[0] == DISPATCH_IPHC) {
+		data++;
+		inline_data++;
+		data_length--;
+	}
 
     // Check first 3 bits, should be (011)
     if ((*data & (0x7 << 5)) != (0x6 << 4)) {
@@ -278,6 +288,7 @@ PANCSTATUS pancake_decompress_header(struct pancake_compressed_ip6_hdr *compress
 			
 			// Increment inline data
 			inline_data += 3;
+			hdr_length += 3;
         
             //return PANCSTATUS_ERR;
             break;
@@ -299,6 +310,7 @@ PANCSTATUS pancake_decompress_header(struct pancake_compressed_ip6_hdr *compress
 		// Full 8 bits carried in line
 		hdr->ip6_nxt = *inline_data; // Byte 3
 		inline_data++;
+		hdr_length++;
     }
     else {
 		// Next header is compressed using LOWPAN_NHC
@@ -307,16 +319,17 @@ PANCSTATUS pancake_decompress_header(struct pancake_compressed_ip6_hdr *compress
 
     // Hop limit
     switch(*data & (0x3 << 0)) {
-        // The Hop Limit field is carried in-line.
-    	case 0x0:
-            hdr->ip6_hlim = (uint8_t) *inline_data;
-            inline_data++;
-            break;
+		// The Hop Limit field is carried in-line.
+		case 0x0:
+			hdr->ip6_hlim = (uint8_t) *inline_data;
+			inline_data++;
+			hdr_length++;
+			break;
 
-        // The Hop Limit field is compressed and the hop limit is 1.
-    	case 0x1:
-           hdr->ip6_hlim = (uint8_t) 1;
-            break;
+		// The Hop Limit field is compressed and the hop limit is 1.
+		case 0x1:
+			hdr->ip6_hlim = (uint8_t) 1;
+			break;
 
         // The Hop Limit field is compressed and the hop limit is 64.
         case 0x2:
@@ -350,6 +363,7 @@ PANCSTATUS pancake_decompress_header(struct pancake_compressed_ip6_hdr *compress
 					hdr->ip6_src.s6_addr[i] = *(inline_data + i);
 				}
 				inline_data += ip_len;
+				hdr_length += ip_len;
 				break;
 			
 			// 64 bits. The first 64-bits of the address are elided.
@@ -366,6 +380,7 @@ PANCSTATUS pancake_decompress_header(struct pancake_compressed_ip6_hdr *compress
 				for(i = (ip_len/2); i < ip_len; i += 1) {
 					hdr->ip6_src.s6_addr[i] = *inline_data;
 					inline_data++;
+					hdr_length++;
 				}
 				
 				break;
@@ -393,6 +408,7 @@ PANCSTATUS pancake_decompress_header(struct pancake_compressed_ip6_hdr *compress
 				hdr->ip6_src.s6_addr[14] = (uint8_t) *inline_data;
 				hdr->ip6_src.s6_addr[15] = (uint8_t) *(inline_data + 1);
 				inline_data += 2;
+				hdr_length += 2;
 				break;
 				
 			// 0 bits. The address is fully elided.  The first 64 bits
@@ -431,6 +447,7 @@ PANCSTATUS pancake_decompress_header(struct pancake_compressed_ip6_hdr *compress
 					hdr->ip6_dst.s6_addr[i] = *(inline_data + i);
 				}
 				inline_data += ip_len;
+				hdr_length += ip_len;
 				
 				break;
 			
@@ -447,6 +464,7 @@ PANCSTATUS pancake_decompress_header(struct pancake_compressed_ip6_hdr *compress
 				for(i = (ip_len/2); i < ip_len; i += 1) {
 					hdr->ip6_dst.s6_addr[i] = *inline_data;
 					inline_data++;
+					hdr_length++;
 				}
 				break;
 				
@@ -472,6 +490,7 @@ PANCSTATUS pancake_decompress_header(struct pancake_compressed_ip6_hdr *compress
 				hdr->ip6_dst.s6_addr[14] = (uint8_t) *inline_data;
 				hdr->ip6_dst.s6_addr[15] = (uint8_t) *(inline_data + 1);
 				inline_data += 2;
+				hdr_length += 2;
 				break;
 				
 			// 0 bits.  The address is fully elided.  The first 64 bits
@@ -489,10 +508,8 @@ PANCSTATUS pancake_decompress_header(struct pancake_compressed_ip6_hdr *compress
 		// Destination is a multicast adress
 		goto err_out;															// NOT IMPLEMENTED
 	}
-	
-	// Payload from 802.15.4 packet or fragmentation header 					// TODO, NOT IMPLEMENTED
-	//hdr->ip6_plen = htons(payload_length);
-																											
+
+	hdr->ip6_plen = htons(data_length-hdr_length);
 
 	return PANCSTATUS_OK;
 	
@@ -587,3 +604,43 @@ PANCSTATUS pancake_diff_header(struct ip6_hdr *origin_hdr, struct ip6_hdr *decom
     return status;
 }
 
+#if PANC_TESTS_ENABLED != 0
+PANCSTATUS pancake_compression_test(PANCHANDLE handle)
+{
+	PANCSTATUS ret = PANCSTATUS_ERR;
+	uint8_t i;
+	int res;
+	char * test_string = "Hello world!";
+	uint8_t raw_data[1 + 40 + strlen(test_string)]; // 5 byte wiggle room
+	uint8_t hdr_data[40];
+	struct pancake_main_dev *dev = &devs[handle];
+	struct ip6_hdr original_hdr, hdr;
+	struct pancake_compressed_ip6_hdr compressed_hdr;
+	compressed_hdr.hdr_data = hdr_data;
+
+	populate_dummy_ipv6_header(&original_hdr, strlen(test_string));
+
+	ret = pancake_compress_header(&original_hdr, &compressed_hdr);
+	if (ret != PANCSTATUS_OK) {
+		goto err_out;
+	}
+
+	raw_data[0] = DISPATCH_IPHC;
+	memcpy(raw_data+1, compressed_hdr.hdr_data, compressed_hdr.size);
+
+	ret = pancake_decompress_header(&hdr, raw_data, 1 + compressed_hdr.size + strlen(test_string));
+	if (ret != PANCSTATUS_OK) {
+		goto err_out;
+	}
+
+	res = memcmp(&original_hdr, &hdr, 40);
+	if (res != 0) {
+		pancake_diff_header(&original_hdr, &hdr);
+		goto err_out;
+	}
+
+	return PANCSTATUS_OK;
+err_out:
+	return PANCSTATUS_ERR;
+}
+#endif

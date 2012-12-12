@@ -15,7 +15,7 @@
 
 extern struct pancake_port_cfg linux_cfg;
 struct pancake_options_cfg my_linux_options = {
-	.compression = PANC_COMPRESSION_NONE,
+	.compression = PANC_COMPRESSION_IPHC,
 	.security = PANC_SECURITY_NONE,
 };
 PANCHANDLE my_pancake_handle;
@@ -97,11 +97,15 @@ int main(int argc, char **argv)
 
 #if 0
 	my_test_function();
-#else
+#elif 0
 	ret = pancake_reassembly_test(my_pancake_handle);
-
 	if (ret != PANCSTATUS_OK) {
 		printf("main.c: reassembly test failed\n");
+	}
+#else
+	ret = pancake_compression_test(my_pancake_handle);
+	if (ret != PANCSTATUS_OK) {
+		printf("main.c: decompression test failed\n");
 	}
 #endif
 

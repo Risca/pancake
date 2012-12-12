@@ -17,7 +17,7 @@
     #include <winsock.h>
 #endif
 
-
+#define ARRAY_LENGTH(x) (sizeof((x))/sizeof((x)[0]))
 
 //_____ D E F I N I T I O N S _________________________________________________
 /* Updated to reflect RFC6282 */
@@ -354,33 +354,12 @@ PANCSTATUS pancake_process_data(void *dev_data, struct pancake_ieee_addr *src, s
 		case DISPATCH_HC1:
 		case DISPATCH_BC0:
 		case DISPATCH_IPHC:
-		    
-		  	/* TODO: 	Since we do not know how much the header in compressed we do
-		  				not know the size of it (?). Thus we cannot calculate the
-		   				location, or size, of the payload. payload_length should be
-		  				removed from pancake_decompress_header. */
-
-			// Payload_length from 802.15.4 packet or fragmentation header 
-			compressed_ip6_hdr.hdr_data = (data+1);
-			ret = pancake_decompress_header(&compressed_ip6_hdr, hdr, payload_length);
-			if (PANCSTATUS_OK != ret ) {
-			    goto out;
+			ret = pancake_decompress_header(hdr, data, size);
+			if (ret != PANCSTATUS_OK) {
+				goto out;
 			}
-			
-			/* If NOT fragmented, set length as size - header - dispatch */
-			if ( NULL == ra_buf ) {
-				payload_length = size - (1 + compressed_ip6_hdr.size); 
-			}
-			/* If fragmented, get length from reassembly - header - dispatch */
-			else {
-				payload_length = ra_buf->octets_received - (1 + compressed_ip6_hdr.size);
-			}
-			
-			/* This should probably be set here since it will depend on if it was fragmented */
-			hdr->ip6_plen = htons(payload_length);
-			
-			payload = data + 1 + compressed_ip6_hdr.size; //????
-			ret = PANCSTATUS_OK;
+			payload_length = ntohs(hdr->ip6_plen);
+			payload = data + (size - payload_length);
 			break;
 		default:
 			switch (*data & 0xF8) { // 0b11111000
@@ -392,6 +371,7 @@ PANCSTATUS pancake_process_data(void *dev_data, struct pancake_ieee_addr *src, s
 				}
 				
 				data = ra_buf->data;
+				size = ra_buf->octets_received;
 				ret = PANCSTATUS_NOTREADY;
 				break;
 			default:

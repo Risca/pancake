@@ -106,7 +106,7 @@ struct pancake_compressed_ip6_hdr {
 
 PANCSTATUS pancake_compress_header(struct ip6_hdr *hdr, struct pancake_compressed_ip6_hdr *compressed_hdr);
 
-PANCSTATUS pancake_decompress_header(struct pancake_compressed_ip6_hdr *compressed_hdr, struct ip6_hdr *hdr, uint16_t payload_length);
+PANCSTATUS pancake_decompress_header(struct ip6_hdr *hdr, uint8_t *data, uint16_t data_length);
 PANCSTATUS pancake_diff_header(struct ip6_hdr *origin_hdr, struct ip6_hdr *decompressed_hdr);
 
 #if 1
