@@ -1,5 +1,5 @@
 [DebugChecksum]
-Checksum=-482782495
+Checksum=-436355210
 [DisAssemblyWindow]
 NumStates=_ 1
 State 1=_ 1
@@ -17,13 +17,8 @@ UseTrigger=1
 TriggerName=main
 LimitSize=0
 ByteLimit=50
-[TermIOLog]
-LoggingEnabled=_ 0
-LogFile=_ ""
 [Breakpoints]
-Bp0=_ "STD_CODE" "{$PROJ_DIR$\..\..\..\..\..\..\port_internal\port_internal.c}.303.3@1" 1 0 0 0 "" 0 ""
-Bp1=_ "STD_CODE" "{$PROJ_DIR$\..\..\..\..\..\..\..\..\common\pancake.c}.363.4@1" 1 0 0 0 "" 0 ""
-Count=2
+Count=0
 [ChipconEmu]
 Stop timers on halt=0
 Leave target running=1
@@ -31,6 +26,9 @@ Leave target running=1
 LoggingEnabled=_ 0
 LogFile=_ ""
 Category=_ 0
+[TermIOLog]
+LoggingEnabled=_ 0
+LogFile=_ ""
 [Aliases]
 Count=0
 SuppressDialog=0

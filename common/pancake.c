@@ -223,6 +223,12 @@ PANCSTATUS pancake_send(PANCHANDLE handle, struct ip6_hdr *hdr, uint8_t *payload
 	}
 	dev = &devs[handle];
 
+	// Get address
+	ret = pancake_get_ieee_address_from_ipv6(&destination_address, &hdr->ip6_dst);
+	if(ret != PANCSTATUS_OK) {
+		goto err_out;
+	}
+
 	switch (dev->options->compression) {
 	case PANC_COMPRESSION_NONE:
 		compressed_ip6_hdr.dispatch_value = DISPATCH_IPv6;
@@ -240,12 +246,6 @@ PANCSTATUS pancake_send(PANCHANDLE handle, struct ip6_hdr *hdr, uint8_t *payload
 		break;
 	default:
 		/* Not supported... yet */
-		goto err_out;
-	}
-
-	// Get address
-	ret = pancake_get_ieee_address_from_ipv6(&destination_address, &hdr->ip6_dst);
-	if(ret != PANCSTATUS_OK) {
 		goto err_out;
 	}
 
@@ -319,12 +319,11 @@ PANCSTATUS pancake_process_data(void *dev_data, struct pancake_ieee_addr *src, s
 {
 	uint8_t *payload;
 	uint16_t payload_length;
-	struct ip6_hdr *hdr;
+	static struct ip6_hdr hdr;
 	PANCSTATUS ret = PANCSTATUS_ERR;
 	PANCHANDLE handle;
 	struct pancake_main_dev *dev;
 	struct pancake_reassembly_buffer *ra_buf = NULL;
-	struct pancake_compressed_ip6_hdr compressed_ip6_hdr;
 
 	/* Try to get handle */
 	handle = pancake_handle_from_dev_data(dev_data);
@@ -346,19 +345,19 @@ PANCSTATUS pancake_process_data(void *dev_data, struct pancake_ieee_addr *src, s
 			else {
 				payload_length = ra_buf->octets_received - (1 + 40);
 			}
-		  
-			hdr = (struct ip6_hdr*)(data + 1);
+
+			memcpy((uint8_t *) &hdr, (data + 1), 40);
 			payload = data + 1 + 40;
 			ret = PANCSTATUS_OK;
 			break;
 		case DISPATCH_HC1:
 		case DISPATCH_BC0:
 		case DISPATCH_IPHC:
-			ret = pancake_decompress_header(hdr, data, size);
+			ret = pancake_decompress_header(&hdr, data, size);
 			if (ret != PANCSTATUS_OK) {
 				goto out;
 			}
-			payload_length = ntohs(hdr->ip6_plen);
+			payload_length = ntohs(hdr.ip6_plen);
 			payload = data + (size - payload_length);
 			break;
 		default:
@@ -391,7 +390,7 @@ PANCSTATUS pancake_process_data(void *dev_data, struct pancake_ieee_addr *src, s
 	// TODO: AT THIS POINT THE IPv6 HEADER, hdr, SHOULD BE DECOMPRESSED(?)
 	
 	event.type = PANC_EVENT_DATA_RECEIVED;
-	event.data_received.hdr = hdr;
+	event.data_received.hdr = &hdr;
 	event.data_received.payload = payload;
 	event.data_received.payload_length = payload_length;
 	

@@ -14,42 +14,39 @@
  * Compress ipv6 address
  * @returns length of inline data in bytes
  */
-static uint8_t compress_address(struct in6_addr address, uint8_t *inline_data) 
+static uint8_t compress_address(struct in6_addr *address, uint8_t *inline_data) 
 {
 	uint8_t i;
+	uint8_t foo = 0;
 
     // Check if 64 first bits are LINK_LOCAL_PREFIX
-    for(i = 0; i < 8 ; i += 1) {
-		// Check if addresses are not equal
-		if(LINK_LOCAL_PREFIX[i] != address.s6_addr[i]) {
-			// Must use full address
-
-			// Copy full adress to inline data
-			for(i = 0; i < 16; i += 1) {
-				*(inline_data + i) = address.s6_addr[i];
-			}
-
-			return 16;
+	for (i = 0; i < 8; i++) {
+		if (LINK_LOCAL_PREFIX[i] != address->s6_addr[i]) {
+			foo = 1;
 		}
+	}
+	//	i = memcmp(LINK_LOCAL_PREFIX, address.s6_addr, 8);
+	if (foo != 0) {
+		// Copy full adress to inline data
+		memcpy(inline_data, address->s6_addr, 16);
+		return 16;
 	}
 
 	// Check if next bits are same as below
 	if(
-		address.s6_addr[8] != 0x00 ||
-		address.s6_addr[9] != 0x00 ||
-		address.s6_addr[10] != 0x00 ||
-		address.s6_addr[11] != 0xff ||
-		address.s6_addr[12] != 0xfe ||
-		address.s6_addr[13] != 0x00
+		address->s6_addr[8] != 0x00 ||
+		address->s6_addr[9] != 0x00 ||
+		address->s6_addr[10] != 0x00 ||
+		address->s6_addr[11] != 0xff ||
+		address->s6_addr[12] != 0xfe ||
+		address->s6_addr[13] != 0x00
 	){
 		// Must use 64 bits inline
 		//*data &= ~(0x2 << 0);	// Clear bit 1
 		//*data |= (0x1 << 0);	// Set bit 0
 
 		// Copy the least 64 bits from adress to inline data
-		for(i = 8; i < 16; i += 1) {
-			*(inline_data + i - 8) = address.s6_addr[i];
-		}
+		memcpy(inline_data, &address->s6_addr[8], 8);
 
 		return 8;
 	}
@@ -59,8 +56,8 @@ static uint8_t compress_address(struct in6_addr address, uint8_t *inline_data)
 		//*data &= ~(1 << 0); // Clear bit 0, -> 10
 
 		// Destination address
-		*inline_data = address.s6_addr[14];
-		*(inline_data + 1) = address.s6_addr[15];
+		*inline_data = address->s6_addr[14];
+		*(inline_data + 1) = address->s6_addr[15];
 		return 2;
 	}
 
@@ -169,7 +166,7 @@ PANCSTATUS pancake_compress_header(struct ip6_hdr *hdr, struct pancake_compresse
     *data &= ~(1 << 6); // Set SAC=0
     
     // Source address
-    ret = compress_address(hdr->ip6_src, inline_data);
+    ret = compress_address(&hdr->ip6_src, inline_data);
 	inline_data += ret;
 	compressed_hdr->size += ret;
 	
@@ -201,7 +198,7 @@ PANCSTATUS pancake_compress_header(struct ip6_hdr *hdr, struct pancake_compresse
     *data &= ~(1 << 2); // Set DAC=0
     
     // Destination address
-    ret = compress_address(hdr->ip6_dst, inline_data);
+    ret = compress_address(&hdr->ip6_dst, inline_data);
 	inline_data += ret;
 	compressed_hdr->size += ret;
 	
@@ -284,7 +281,7 @@ PANCSTATUS pancake_decompress_header(struct ip6_hdr *hdr, uint8_t * data, uint16
 			flow |= (*inline_data & ((uint32_t)0xf)) << 16;
 			flow |= *(inline_data + 1) << 8;
 			flow |= *(inline_data + 2);
-			hdr->ip6_flow = ntohl(flow);
+			hdr->ip6_flow = htonl((uint32_t)flow);
 			
 			// Increment inline data
 			inline_data += 3;
@@ -392,9 +389,7 @@ PANCSTATUS pancake_decompress_header(struct ip6_hdr *hdr, uint8_t * data, uint16
 			case (0x2 << 4):
 			
 				// First 64 bits from link-local prefix
-				for(i = 0; i < 8; i += 1) {
-					hdr->ip6_src.s6_addr[i] = LINK_LOCAL_PREFIX[i];
-				}
+				memcpy(hdr->ip6_src.s6_addr, LINK_LOCAL_PREFIX, 8);
 				
 				// Static
 				hdr->ip6_src.s6_addr[8] = (uint8_t) 0x0;
