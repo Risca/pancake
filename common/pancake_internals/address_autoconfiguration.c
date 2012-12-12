@@ -68,6 +68,7 @@ err_out:
 PANCSTATUS pancake_get_ieee_address_from_ipv6(struct pancake_ieee_addr *ieee_address, struct in6_addr *address)
 {
 	uint8_t i;
+	uint8_t signature[] = {0x00, 0xff, 0xfe, 0x00};
 	
 	// Check if link local
 	for(i = 0; i < 8; i += 1) {
@@ -79,19 +80,23 @@ PANCSTATUS pancake_get_ieee_address_from_ipv6(struct pancake_ieee_addr *ieee_add
 	//[8]-[9] = 00
 	
 	// Check if 64 bit or 16
-	if((uint32_t) address->s6_addr[10] == 0x00fffe00) {
+	i = memcmp(&address->s6_addr[10], &signature, 4);
+	if(i == 0) {
 		// Short address
 		ieee_address->addr_mode = PANCAKE_IEEE_ADDR_MODE_SHORT;
 		
 		ieee_address->ieee_short = 0;
-		ieee_address->ieee_short = (address->s6_addr[14] << 8) | address->s6_addr[15];
-	} else {
+		ieee_address->ieee_short = htons((address->s6_addr[14] << 8) | address->s6_addr[15]);
+	}
+	else {
 		// Extended address
 		ieee_address->addr_mode = PANCAKE_IEEE_ADDR_MODE_EXTENDED;
 		
 		for(i = 0; i < 8; i += 1) {
 			ieee_address->ieee_ext[i] = address->s6_addr[8 + i];
 		}
+		/* Complement U/L bit */
+		ieee_address->ieee_ext[0] ^= (1 << 1);
 	}
 	
 	return PANCSTATUS_OK;

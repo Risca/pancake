@@ -66,7 +66,7 @@ static pancake_event event;
 #endif
 
 
-static PANCSTATUS pancake_send_fragmented(struct pancake_main_dev *dev, uint8_t *raw_data, struct pancake_compressed_ip6_hdr *comp_hdr, uint8_t *payload, uint16_t payload_len);
+static PANCSTATUS pancake_send_fragmented(struct pancake_main_dev *dev, uint8_t *raw_data, struct pancake_ieee_addr *dest_addr, struct pancake_compressed_ip6_hdr *comp_hdr, uint8_t *payload, uint16_t payload_len);
 
 
 //_____ F U N C T I O N   D E F I N I T I O N S________________________________
@@ -243,12 +243,18 @@ PANCSTATUS pancake_send(PANCHANDLE handle, struct ip6_hdr *hdr, uint8_t *payload
 		goto err_out;
 	}
 
+	// Get address
+	ret = pancake_get_ieee_address_from_ipv6(&destination_address, &hdr->ip6_dst);
+	if(ret != PANCSTATUS_OK) {
+		goto err_out;
+	}
+
 	/* Check if fragmentation is needed */
 	frame_overhead = calculate_frame_overhead(dev, &compressed_ip6_hdr);
 	if (frame_overhead + aMaxFrameOverhead + payload_length > aMaxPHYPacketSize) {
 		
 		/* pancake_send_fragmented() sends the whole payload, but in multiple packets */
-		ret = pancake_send_fragmented(dev, raw_data, &compressed_ip6_hdr, payload, payload_length);
+		ret = pancake_send_fragmented(dev, raw_data, &destination_address, &compressed_ip6_hdr, payload, payload_length);
 
 		if (ret != PANCSTATUS_OK) {
 			goto err_out;
@@ -279,11 +285,6 @@ PANCSTATUS pancake_send(PANCHANDLE handle, struct ip6_hdr *hdr, uint8_t *payload
 		color_positions[2].description = "Payload";
 		pancake_pretty_print(dev->dev_data, raw_data, length, color_positions, 3);
 #endif
-		// Get address
-		ret = pancake_get_ieee_address_from_ipv6(&destination_address, &hdr->ip6_dst);
-		if(ret != PANCSTATUS_OK) {
-			goto err_out;
-		}
 		
 		ret = dev->cfg->write_func(dev->dev_data, &destination_address, raw_data, length);
 		if (ret != PANCSTATUS_OK) {

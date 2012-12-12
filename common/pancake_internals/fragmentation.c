@@ -52,7 +52,7 @@ static PANCSTATUS populate_fragmentation_header(struct pancake_frag_hdr *frag_hd
  * | Header overhead | F Typ | F Hdr (+offset)  | ...yload           |
  * +-----------------+-------+------------------+--------------------+
  */ 
-static PANCSTATUS pancake_send_fragmented(struct pancake_main_dev *dev, uint8_t *raw_data, struct pancake_compressed_ip6_hdr *comp_hdr, uint8_t *payload, uint16_t payload_len)
+static PANCSTATUS pancake_send_fragmented(struct pancake_main_dev *dev, uint8_t *raw_data, struct pancake_ieee_addr *dest_addr, struct pancake_compressed_ip6_hdr *comp_hdr, uint8_t *payload, uint16_t payload_len)
 {
 	PANCSTATUS ret;
 	struct pancake_frag_hdr *frag_hdr;
@@ -62,8 +62,8 @@ static PANCSTATUS pancake_send_fragmented(struct pancake_main_dev *dev, uint8_t 
 	uint16_t space_available;
 	uint16_t offset = 0;
 	uint8_t frag_hdr_len = 5;
-	
-#if PANC_DEMO_TWO != 0
+
+#if PANC_USE_COLOR != 0
 	struct color_change color_positions[] = {
 		{
 			.color = PANC_COLOR_RED,
@@ -125,7 +125,7 @@ static PANCSTATUS pancake_send_fragmented(struct pancake_main_dev *dev, uint8_t 
 		payload_len -= space_available;
 
 		/* Time to pay a little visit to the transmission fairy */
-		ret = dev->cfg->write_func(dev->dev_data, NULL, raw_data, dgram_hdr_len + space_available);
+		ret = dev->cfg->write_func(dev->dev_data, dest_addr, raw_data, dgram_hdr_len + space_available);
 		if (ret != PANCSTATUS_OK) {
 			goto err_out;
 		}
@@ -144,7 +144,7 @@ static PANCSTATUS pancake_send_fragmented(struct pancake_main_dev *dev, uint8_t 
 #endif
 
 	/* Time to pay a little visit to the transmission fairy */
-	ret = dev->cfg->write_func(dev->dev_data, NULL, raw_data, dgram_hdr_len + payload_len);
+	ret = dev->cfg->write_func(dev->dev_data, dest_addr, raw_data, dgram_hdr_len + payload_len);
 	if (ret != PANCSTATUS_OK) {
 		goto err_out;
 	}
