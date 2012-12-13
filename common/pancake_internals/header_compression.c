@@ -34,23 +34,13 @@ static uint8_t compress_address(struct in6_addr *address, uint8_t *inline_data)
 
 	// Check if next bits are same as below
 	if(
-		address->s6_addr[8] != 0x00 ||
-		address->s6_addr[9] != 0x00 ||
-		address->s6_addr[10] != 0x00 ||
-		address->s6_addr[11] != 0xff ||
-		address->s6_addr[12] != 0xfe ||
-		address->s6_addr[13] != 0x00
+		address->s6_addr[8] == 0x00 ||
+		address->s6_addr[9] == 0x00 ||
+		address->s6_addr[10] == 0x00 ||
+		address->s6_addr[11] == 0xff ||
+		address->s6_addr[12] == 0xfe ||
+		address->s6_addr[13] == 0x00
 	){
-		// Must use 64 bits inline
-		//*data &= ~(0x2 << 0);	// Clear bit 1
-		//*data |= (0x1 << 0);	// Set bit 0
-
-		// Copy the least 64 bits from adress to inline data
-		memcpy(inline_data, &address->s6_addr[8], 8);
-
-		return 8;
-	}
-	else {
 		// Destination Address Mode (16 bits address carried in line	// TODO, check if full address can be eligned
 		//*data |= (1 << 1);  // Set bit 1=1
 		//*data &= ~(1 << 0); // Clear bit 0, -> 10
@@ -59,6 +49,10 @@ static uint8_t compress_address(struct in6_addr *address, uint8_t *inline_data)
 		*inline_data = address->s6_addr[14];
 		*(inline_data + 1) = address->s6_addr[15];
 		return 2;
+	}
+	else {
+		/* We assume right-most 64 bits are EUI-64 addr */
+		return 0;
 	}
 
 }
@@ -165,14 +159,14 @@ PANCSTATUS pancake_compress_header(struct ip6_hdr *hdr, struct pancake_compresse
     // Source Address Compression SAC
     *data &= ~(1 << 6); // Set SAC=0
     
-    // Source address
-    ret = compress_address(&hdr->ip6_src, inline_data);
+	// Source address
+	ret = compress_address(&hdr->ip6_src, inline_data);
 	inline_data += ret;
 	compressed_hdr->size += ret;
 	
 	switch(ret) {
 		case 16:
-			*data &= ~(0x3 << 4); // Clear bits
+			*data &= ~(0x3 << 4); // Clear bits (SAM == 00)
 			break;
 			
 		case 8: 
@@ -186,19 +180,19 @@ PANCSTATUS pancake_compress_header(struct ip6_hdr *hdr, struct pancake_compresse
 			break;
 			
 		case 0:
-			goto not_implemented;
+			*data |= (0x3 << 4); // Set SAM == 11
 			break;
 	}
     
 
-    // Multicast Compression (destination is NOT an Multicast address) (M=0)
-    *data &= ~(1 << 3);
+	// Multicast Compression (destination is NOT an Multicast address) (M=0)
+	*data &= ~(1 << 3);
 
-    // Destination Address Compression DAC (DAC=0)
-    *data &= ~(1 << 2); // Set DAC=0
+	// Destination Address Compression DAC (DAC=0)
+	*data &= ~(1 << 2); // Set DAC=0
     
-    // Destination address
-    ret = compress_address(&hdr->ip6_dst, inline_data);
+	// Destination address
+	ret = compress_address(&hdr->ip6_dst, inline_data);
 	inline_data += ret;
 	compressed_hdr->size += ret;
 	
@@ -218,12 +212,11 @@ PANCSTATUS pancake_compress_header(struct ip6_hdr *hdr, struct pancake_compresse
 			break;
 		
 		case 0:
-			goto not_implemented;
+			*data |= (0x3 << 4); // Set DAM == 11
 			break;
 	}
 
     return PANCSTATUS_OK;
-    
 #if 0
 err_out:
 	return PANCSTATUS_ERR;
