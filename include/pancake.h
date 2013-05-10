@@ -71,23 +71,13 @@ typedef union {
 	struct pancake_event_data_received data_received;
 } pancake_event;
   
-
+/* Link local prefix */
+static const uint8_t LINK_LOCAL_PREFIX[8] = {0xfe, 0x80, 0, 0, 0, 0, 0, 0}; // 64 bits
 
 typedef void (*event_callback_func)(pancake_event *event);
 
 PANCSTATUS pancake_init(PANCHANDLE *handle, struct pancake_options_cfg *options_cfg, struct pancake_port_cfg *port_cfg, void *dev_data, event_callback_func event_callback);
-PANCSTATUS pancake_write_test(PANCHANDLE handle);
-
-#if 1
-// Link local prefix
-static const uint8_t LINK_LOCAL_PREFIX[8] = {0xfe, 0x80, 0, 0, 0, 0, 0, 0}; // 64 bits
-#endif
-
 void pancake_destroy(PANCHANDLE handle);
-#if PANC_TESTS_ENABLED != 0
-PANCSTATUS pancake_write_test(PANCHANDLE handle);
-PANCSTATUS pancake_reassembly_test(PANCHANDLE handle);
-#endif
 
 /* For upper layers */
 PANCSTATUS pancake_send(PANCHANDLE handle, struct ip6_hdr *hdr, uint8_t *payload, uint16_t payload_length);
@@ -97,6 +87,15 @@ PANCSTATUS pancake_send_packet(PANCHANDLE handle, uint8_t *ip6_packet, uint16_t 
 PANCSTATUS pancake_process_data(void *dev_data, struct pancake_ieee_addr *src, struct pancake_ieee_addr *dst, uint8_t *data, uint16_t size);
 PANCSTATUS pancake_connection_update(void *dev_data, struct pancake_event_con_update *connection_update );
 
+/* Test functions */
+#if PANC_TESTS_ENABLED != 0
+PANCSTATUS pancake_write_test(PANCHANDLE handle);
+PANCSTATUS pancake_reassembly_test(PANCHANDLE handle);
+#endif
+
+/** Internal functions to Pancake below! Don't touch! **/
+PANCHANDLE pancake_handle_from_dev_data(void *dev_data);
+
 /* Header compression */
 struct pancake_compressed_ip6_hdr {
 	uint8_t *hdr_data;
@@ -105,13 +104,8 @@ struct pancake_compressed_ip6_hdr {
 };
 
 PANCSTATUS pancake_compress_header(struct ip6_hdr *hdr, struct pancake_compressed_ip6_hdr *compressed_hdr);
-
 PANCSTATUS pancake_decompress_header(struct ip6_hdr *hdr, uint8_t *data, uint16_t data_length);
 PANCSTATUS pancake_diff_header(struct ip6_hdr *origin_hdr, struct ip6_hdr *decompressed_hdr);
-
-#if 1
-/* Internal */
-PANCHANDLE pancake_handle_from_dev_data(void *dev_data);
 
 /* Adress autoconfiguration */
 struct pancake_radio_id {
@@ -135,5 +129,4 @@ struct pancake_radio_id {
 
 PANCSTATUS pancake_get_in6_address(const uint8_t *address_prefix, const struct pancake_radio_id *r_id, struct in6_addr *address);
 PANCSTATUS pancake_get_ieee_address_from_ipv6(struct pancake_ieee_addr *ieee_address, struct in6_addr *address);
-#endif
 #endif

@@ -195,6 +195,7 @@ void pancake_destroy(PANCHANDLE handle)
 	if (ret != PANCSTATUS_OK) {
 		/* What to do, what to do? */
 	}
+	memset(dev, 0, sizeof(struct pancake_main_dev));
 }
 
 PANCSTATUS pancake_send(PANCHANDLE handle, struct ip6_hdr *hdr, uint8_t *payload, uint16_t payload_length)
