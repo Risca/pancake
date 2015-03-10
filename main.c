@@ -95,7 +95,7 @@ int main(int argc, char **argv)
 	}
 
 
-#if 0
+#if 1
 	my_test_function();
 #elif 0
 	ret = pancake_reassembly_test(my_pancake_handle);
